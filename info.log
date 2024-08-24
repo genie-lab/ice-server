@@ -3493,3 +3493,7 @@
 {"level":"info","message":"http://localhost:4000","service":"user-service"}
 {"level":"info","message":"57.2109MB, 힙메모리 사이즈","service":"user-service"}
 {"level":"info","message":"http://localhost:4000","service":"user-service"}
+{"level":"info","message":"57.0898MB, 힙메모리 사이즈","service":"user-service"}
+{"level":"info","message":"http://localhost:4000","service":"user-service"}
+{"level":"info","message":"57.1484MB, 힙메모리 사이즈","service":"user-service"}
+{"level":"info","message":"http://localhost:4000","service":"user-service"}
