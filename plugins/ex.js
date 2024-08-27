@@ -1,7 +1,8 @@
 const jwt = require("./jwt");
+const { ip, ipv6, mac } = require("address");
 
 module.exports = {
-  repeat: function () {
+  /* repeat: function () {
     let query = [];
     for (let i = 0; i < 200; i++) {
       console.log(i);
@@ -11,5 +12,20 @@ module.exports = {
     }
     console.log(query.toString().replace(/;,/g, "; "));
     return query;
+  }, */
+
+  symbol: function () {
+    const key = "b_id";
+    const sb = Symbol("baa");
+    const cols = {
+      [key]: "test",
+      [sb]: "sb",
+      [Symbol("foo")]: false,
+    };
+
+    const symbolProperties = Object.getOwnPropertySymbols(cols);
+    // console.log(symbolProperties); //
+    // console.log(cols[symbolProperties[1]]); // 27
+    console.dir(ip());
   },
 };

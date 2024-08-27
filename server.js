@@ -13,8 +13,8 @@ const webServer = http.createServer(app);
 const logger = require("./plugins/logger");
 global.$logger = logger;
 
-// const ex = require("./plugins/ex");
-// const query = ex.repeat();
+const ex = require("./plugins/ex");
+const query = ex.symbol();
 // $logger.info(query);
 
 //cors

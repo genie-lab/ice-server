@@ -1,5 +1,8 @@
+const VIEW_TABLE = {
+  BANK: "view_bank",
+};
 const TABLE = {
-  VIEW_BANK: "view_bank",
+  BANK: "bank",
 };
 
-module.exports = TABLE;
+module.exports = { VIEW_TABLE, TABLE };
