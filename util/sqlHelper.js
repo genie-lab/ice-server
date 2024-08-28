@@ -6,7 +6,6 @@ const sqlHelper = {
 
     if (funcs) {
       query = query.replace("*", funcs[0]);
-      console.log(query);
     }
 
     let sortby = [];

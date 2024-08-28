@@ -19,35 +19,31 @@ const optionsController = {
     const options = {
       rowsPerPage: "50",
       page: "1",
-      sortBy: ["b_id", "b_create_at"],
+      sortBy: ["op_id", "op_create_at"],
       type: ["desc", "desc"],
     };
-    // const sql = "select * from view_bank  ORDER BY  b_id desc , b_create_at desc    LIMIT 0 , 50;";
     const { query } = await sqlHelper.selectLimit(VIEW_TABLE.OPTIONS, options);
-    // console.log(query);
-    const rows = await db.execute(query);
+    console.log(query);
+    const [rows] = await db.execute(query);
     return rows;
   },
   //where절 목록 post
   listByWhere: async function (req) {
-    console.log(req);
     //where절 여러개
     const cols = {
-      b_account: "Zcidw5HO172",
-      b_host: "신진이",
+      op_name: "은행",
     };
 
-    // const options = {
-    //   rowsPerPage: "50",
-    //   page: "1",
-    //   sortBy: ["b_id", "b_create_at"],
-    //   type: ["desc", "desc"],
-    // };
+    const options = {
+      rowsPerPage: "50",
+      page: "1",
+      sortBy: ["op_id", "op_create_at"],
+      type: ["desc", "desc"],
+    };
 
-    // select * from view_bank WHERE b_account=? and b_host=?    [ 'Zcidw5HO172', '신진이' ]
     const { query, values } = await sqlHelper.selectLimit(
       VIEW_TABLE.OPTIONS,
-      (options = null),
+      options,
       cols
     );
     // console.log(query, values);
@@ -56,8 +52,8 @@ const optionsController = {
   },
   //중복체크 post
   duplCheck: async function () {
-    const key = "b_account";
-    const val = "oynFuiax199";
+    const key = "op_name";
+    const val = "은행";
     const obj = {
       [key]: val,
     };
@@ -65,12 +61,8 @@ const optionsController = {
     const func = ["count(*) as duplCount"];
     //where절
     const cols = {
-      b_account: "oynFuiax199",
-      b_host: "신진이",
-      b_name: "국민",
+      op_name: "은행",
     };
-
-    // select * from view_bank WHERE b_account=? and b_host=?    [ 'Zcidw5HO172', '신진이' ]
     const { query, values } = await sqlHelper.selectLimit(
       VIEW_TABLE.OPTIONS,
       (options = null),
@@ -83,14 +75,18 @@ const optionsController = {
   },
   //추가 post
   add: async function (req) {
-    const symbolProperties = Object.getOwnPropertySymbols(req);
-    // symbolProperties.forEach((s) => {
-    //   console.log(s, ":", req[s]);
-    // });
-    // console.log(req[symbolProperties[2]].host); //localhost:4000
-    // const b_ip = req[symbolProperties[2]].host;
-    //b_name,b_account,b_host,b_location,b_ip_at,mb_id
-    //https://www.npmjs.com/package/address
+    // 지출 취급항목
+    // 월세
+    // 관리비
+    // 요금보내는사람
+    // 신기백
+    // 신진이
+    // 요금받는사람
+    // 홍길동
+    // 김길동
+    // 지출담당주소
+    // 서대문
+
     const contents = ["국민", "우리", "기업", "스위스", "뉴욕", "캐나다"];
     const payload = {
       op_name: "은행",
@@ -105,16 +101,15 @@ const optionsController = {
   },
   //수정삭제 post
   edit: async function (req) {
+    const contents = ["국민", "우리", "기업", "네덜란드", "뉴욕", "캐나다"];
     const payload = {
-      b_name: "국민",
-      b_account: "1212333",
-      b_host: "신진이",
-      b_location: "서대",
-      b_ip_at: ip(),
-      mb_id: "genie",
+      op_name: "은행",
+      op_text: contents.toString(),
+      op_ip_at: ip(),
+      mb_id: "hanna",
     };
     const cols = {
-      b_id: 202,
+      op_id: 1,
     };
 
     const { query, values, where } = await sqlHelper.edit(
@@ -130,12 +125,12 @@ const optionsController = {
   //수정삭제 post
   del: async function (req) {
     const payload = {
-      b_use: 0,
-      b_ip_at: ip(),
-      mb_id: "genie",
+      op_use: 0,
+      op_ip_at: ip(),
+      mb_id: "hanna",
     };
     const cols = {
-      b_id: 202,
+      op_id: 1,
     };
 
     const { query, values, where } = await sqlHelper.edit(
