@@ -20,8 +20,8 @@ const query = ex.symbol();
 //cors
 const cors = require("cors");
 const corsOptions = {
-  origin: ["http://localhost:8080", "http://localhost:4466"],
-  credential: true,
+  origin: ["http://localhost:4080", "http://localhost:4466"],
+  credentials: true,
 };
 app.use(cors(corsOptions));
 

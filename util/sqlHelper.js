@@ -11,7 +11,7 @@ const sqlHelper = {
     let sortby = [];
     let orderby = "";
     let limit = "";
-    console.log("options", options);
+    // console.log("options", options);
     if (options?.sortBy && options?.type) {
       for (let i = 0; i < options.sortBy.length; i++) {
         const sort = ` ${options.sortBy[i]} ${options.type[i]} `;
