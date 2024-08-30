@@ -27,12 +27,12 @@ router.post("/add", async (req, res) => {
   res.json(result);
 });
 //수정
-router.patch("/edit", async (req, res) => {
+router.put("/edit", async (req, res) => {
   const result = await optionsController.edit(req);
   res.json(result);
 });
 //삭제
-router.patch("/del", async (req, res) => {
+router.put("/del", async (req, res) => {
   const result = await optionsController.del(req);
   res.json(result);
 });

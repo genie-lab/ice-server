@@ -27,5 +27,8 @@ module.exports = {
     // console.log(symbolProperties); //
     // console.log(cols[symbolProperties[1]]); // 27
     console.dir(ip());
+    const str = "hello genie";
+    const test = new RegExp(str);
+    console.log(test.test("hello genie"));
   },
 };

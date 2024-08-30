@@ -26,7 +26,6 @@ const bankController = {
     //   sortBy: ["b_id", "b_update_at"],
     //   type: ["desc", "desc"],
     // };
-    // const sql = "select * from view_bank  ORDER BY  b_id desc , b_create_at desc    LIMIT 0 , 50;";
     const { query } = await sqlHelper.selectLimit(VIEW_TABLE.BANK, options);
     // console.log(query);
     const [rows] = await db.execute(query);
@@ -45,11 +44,10 @@ const bankController = {
     const options = {
       rowsPerPage: "50",
       page: "1",
-      sortBy: ["b_id", "b_update_at"],
-      type: ["desc", "desc"],
+      sortBy: ["b_update_at"],
+      type: ["desc"],
     };
 
-    // select * from view_bank WHERE b_account=? and b_host=?    [ 'Zcidw5HO172', '신진이' ]
     const { query, values } = await sqlHelper.selectLimit(
       VIEW_TABLE.BANK,
       options,

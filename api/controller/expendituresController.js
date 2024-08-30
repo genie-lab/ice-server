@@ -7,8 +7,9 @@ const { ip, ipv6, mac } = require("address");
 const expendituresController = {
   //전체목록갯수 get
   listCount: async function () {
-    const query = await sqlHelper.selectSimpleCount(VIEW_TABLE.EXPENDITURES);
-    const [[rowsCount]] = await db.execute(query);
+    const query = await sqlHelper.selectSimpleCount(VIEW_TABLE.BANK);
+    const [[{ rowsCount }]] = await db.execute(query);
+    // console.log(rowsCount);
     return rowsCount;
   },
   //페이지 목록 get
