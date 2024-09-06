@@ -1,10 +1,23 @@
 const db = require("../../plugins/mysql");
-const { VIEW_TABLE, TABLE } = require("../../util/TABLE");
+const { VIEW_TABLE, TABLE, DATABASE } = require("../../util/TABLE");
 const sqlHelper = require("../../util/sqlHelper");
 const qs = require("qs");
 const { ip, ipv6, mac } = require("address");
+const moment = require("../../util/moment");
 
 const optionsController = {
+  //전체목록갯수 get
+  tables: async function () {
+    const query = `SELECT table_name FROM information_schema.tables WHERE table_schema = '${DATABASE.ICE}'`;
+    const [rows] = await db.execute(query);
+    const tables = [];
+    for (r in rows) {
+      if (rows[r]["TABLE_NAME"].indexOf("view_") <= -1) {
+        tables.push(rows[r]["TABLE_NAME"]);
+      }
+    }
+    return tables; //[]
+  },
   //전체목록갯수 get
   listCount: async function () {
     const query = await sqlHelper.selectSimpleCount(VIEW_TABLE.OPTIONS);
@@ -24,8 +37,18 @@ const optionsController = {
     //   type: ["desc"],
     // };
     const { query } = await sqlHelper.selectLimit(VIEW_TABLE.OPTIONS, options);
-    console.log(query);
+    // console.log(query);
+    // const sql = "select * from view_options   where  op_id = 51";
+    // const [rows] = await db.execute(sql);
     const [rows] = await db.execute(query);
+    //문자열을 배열로,,
+    // rows.forEach((element) => {
+    //   let str = element.op_text;
+    //   const arr = str.split(",");
+    //   console.log(arr);
+    //   element.op_text = arr;
+    // });
+    // console.log(rows);
     return rows;
   },
   //where절 목록 post
@@ -58,7 +81,7 @@ const optionsController = {
     const func = ["count(*) as duplCount"];
     //where절
     const cols = req.body;
-    console.log(cols);
+
     const { query, values } = await sqlHelper.selectLimit(
       VIEW_TABLE.OPTIONS,
       (options = null),
@@ -106,8 +129,9 @@ const optionsController = {
     // };
     // const contents = ["국민", "우리", "기업", "네덜란드", "뉴욕", "캐나다"];
     const payload = {
-      op_name: req.body.op_name,
-      op_text: req.body.op_text,
+      ...req.body,
+      // op_name: req.body.op_name,
+      // op_text: req.body.op_text,
       op_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
       op_ip_at: ip(),
       mb_id: "hanna",
@@ -120,6 +144,7 @@ const optionsController = {
     );
     const allVals = [...values, ...where];
     console.log(query, allVals);
+
     const [editDone] = await db.execute(query, allVals);
     return editDone;
   },

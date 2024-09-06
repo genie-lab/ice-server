@@ -1,6 +1,11 @@
 const router = require("express").Router();
 const optionsController = require("./controller/optionsController");
 
+//전체테이블
+router.get("/tables", async (req, res) => {
+  const result = await optionsController.tables();
+  res.json(result);
+});
 //전체목록수
 router.get("/listCount", async (req, res) => {
   const result = await optionsController.listCount();

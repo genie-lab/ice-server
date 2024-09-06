@@ -8,5 +8,8 @@ const TABLE = {
   OPTIONS: "options",
   EXPENDITURES: "expenditures",
 };
+const DATABASE = {
+  ICE: "ice",
+};
 
-module.exports = { VIEW_TABLE, TABLE };
+module.exports = { VIEW_TABLE, TABLE, DATABASE };
