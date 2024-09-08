@@ -1,38 +1,44 @@
 const router = require("express").Router();
 const bankController = require("./controller/bankController");
+const { modelCall } = require("../util/lib");
 //전체목록수
 router.get("/listCount", async (req, res) => {
-  const result = await bankController.listCount();
+  const result = await modelCall(bankController.listCount, req);
   res.json(result);
 });
 //페이지 목록
 router.get("/list", async (req, res) => {
-  const result = await bankController.list(req);
+  const result = await modelCall(bankController.list, req);
   res.json(result);
 });
 //where절 목록
 router.post("/listByWhere", async (req, res) => {
-  const result = await bankController.listByWhere(req);
+  const result = await modelCall(bankController.listByWhere, req);
   res.json(result);
 });
 //중복검사
 router.post("/duplCheck", async (req, res) => {
-  const result = await bankController.duplCheck(req);
+  try {
+    const result = await modelCall(bankController.duplCheck, req);
+  } catch (error) {}
+
+  test(bankController, duplcheck, req);
+  const result = await modelCall(bankController.duplCheck, req);
   res.json(result);
 });
 //추가
 router.post("/add", async (req, res) => {
-  const result = await bankController.add(req);
+  const result = await modelCall(bankController.add, req);
   res.json(result);
 });
 //수정
 router.put("/edit", async (req, res) => {
-  const result = await bankController.edit(req);
+  const result = await modelCall(bankController.edit, req);
   res.json(result);
 });
 //삭제
 router.put("/del", async (req, res) => {
-  const result = await bankController.del(req);
+  const result = await modelCall(bankController.del, req);
   res.json(result);
 });
 

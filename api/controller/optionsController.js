@@ -10,10 +10,14 @@ const optionsController = {
   tables: async function () {
     const query = `SELECT table_name FROM information_schema.tables WHERE table_schema = '${DATABASE.ICE}'`;
     const [rows] = await db.execute(query);
+    // console.log(rows);
     const tables = [];
-    for (r in rows) {
-      if (rows[r]["TABLE_NAME"].indexOf("view_") <= -1) {
-        tables.push(rows[r]["TABLE_NAME"]);
+    if (rows?.length > 0) {
+      for (r in rows) {
+        // console.log(rows[r]["table_name"]);
+        if (rows[r]["table_name"].indexOf("view_") <= -1) {
+          tables.push(rows[r]["table_name"]);
+        }
       }
     }
     return tables; //[]
@@ -95,7 +99,7 @@ const optionsController = {
   },
   //추가 post
   add: async function (req) {
-    console.log(req.body);
+    // console.log(req.body);
     // 지출 취급항목
     // 월세
     // 관리비
@@ -122,8 +126,9 @@ const optionsController = {
   },
   //수정삭제 put
   edit: async function (req) {
+    console.log(req._parsedUrl.search);
     const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
-    console.log(cols);
+    // console.log(cols);
     // const cols = {
     //   op_id: 1,
     // };
@@ -143,18 +148,18 @@ const optionsController = {
       cols
     );
     const allVals = [...values, ...where];
-    console.log(query, allVals);
+    // console.log(query, allVals);
 
     const [editDone] = await db.execute(query, allVals);
     return editDone;
   },
   //수정삭제 put
   del: async function (req) {
-    const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
-    console.log(cols);
-    // const cols = {
-    //   op_id: 1,
-    // };
+    // const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
+    // console.log(cols);
+    const cols = {
+      op_id: req.body.op_id,
+    };
     const payload = {
       op_use: 0,
       op_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
