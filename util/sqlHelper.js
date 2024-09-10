@@ -21,7 +21,7 @@ const sqlHelper = {
     }
 
     if (options?.page !== undefined && options?.rowsPerPage !== undefined) {
-      const page = (options.page - 1) * options.rowsPerPage;
+      const page = options.page * options.rowsPerPage;
       limit = ` LIMIT ${page} , ${options.rowsPerPage} `;
     }
 

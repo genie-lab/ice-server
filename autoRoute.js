@@ -17,7 +17,7 @@ const autoRoute = function (root, app) {
       if (moduleName == "/index") {
         moduleName = "";
       }
-      console.log(`${root}${moduleName}`, `.${root}/${f.name}`);
+      // console.log(`${root}${moduleName}`, `.${root}/${f.name}`);
       app.use(`${root}${moduleName}`, require(`.${root}/${f.name}`));
     }
   });

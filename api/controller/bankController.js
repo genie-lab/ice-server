@@ -11,7 +11,6 @@ const bankController = {
   listCount: async function () {
     const query = await sqlHelper.selectSimpleCount(VIEW_TABLE.BANK);
     const [[{ rowsCount }]] = await db.execute(query);
-    // console.log(rowsCount);
     return rowsCount;
   },
   //페이지 목록 get

@@ -34,6 +34,7 @@ const optionsController = {
   list: async function (req) {
     const reqQuery = req._parsedUrl.search; //req.query는 url과 같이 req.param은 객체    `?rowsPerPage=50&page=1&sortBy=b_id&type=desc&sortBy=b_craete_at&type=desc`;
     const options = qs.parse(reqQuery, { ignoreQueryPrefix: true }); //?삭제
+    console.log(options);
     // const options = {
     //   rowsPerPage: "50",
     //   page: "1",
@@ -41,7 +42,7 @@ const optionsController = {
     //   type: ["desc"],
     // };
     const { query } = await sqlHelper.selectLimit(VIEW_TABLE.OPTIONS, options);
-    // console.log(query);
+    console.log(query);
     // const sql = "select * from view_options   where  op_id = 51";
     // const [rows] = await db.execute(sql);
     const [rows] = await db.execute(query);
@@ -52,7 +53,7 @@ const optionsController = {
     //   console.log(arr);
     //   element.op_text = arr;
     // });
-    // console.log(rows);
+    console.log(rows);
     return rows;
   },
   //where절 목록 post

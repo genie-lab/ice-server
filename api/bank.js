@@ -18,11 +18,6 @@ router.post("/listByWhere", async (req, res) => {
 });
 //중복검사
 router.post("/duplCheck", async (req, res) => {
-  try {
-    const result = await modelCall(bankController.duplCheck, req);
-  } catch (error) {}
-
-  test(bankController, duplcheck, req);
   const result = await modelCall(bankController.duplCheck, req);
   res.json(result);
 });
