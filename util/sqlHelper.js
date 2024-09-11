@@ -1,6 +1,6 @@
 const sqlHelper = {
   //함수만들기 cols는 where절도 같이 들어감
-  selectLimit: async function (table, options, cols, funcs) {
+  selectLimit: async function (table, options = null, cols, funcs) {
     // const query = `select * from view_bank ORDER BY 'desc' limit 0,1`;
     let query = `select * from ${table}`;
 
@@ -85,10 +85,10 @@ const sqlHelper = {
     if (cols) {
       const keys = Object.keys(cols);
       query = query.replace("{2}", `${keys[0]}=?`);
-      where.push(cols[keys[0]]);
+      values.push(cols[keys[0]]);
     }
 
-    return { query, values, where };
+    return { query, values };
   },
 };
 module.exports = sqlHelper;

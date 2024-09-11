@@ -173,9 +173,8 @@ const optionsController = {
       payload,
       cols
     );
-    const allVals = [...values, ...where];
-    console.log(query, allVals);
-    const [editDone] = await db.execute(query, allVals);
+    console.log(query, values);
+    const [editDone] = await db.execute(query, values);
     return editDone;
   },
 };

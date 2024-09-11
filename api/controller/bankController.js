@@ -136,12 +136,9 @@ const bankController = {
   },
   //수정삭제 post
   del: async function (req) {
-    console.log(req.body);
-    const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
-    console.log(cols);
-    // const cols = {
-    //   b_id: 202,
-    // };
+    const cols = {
+      b_id: req.body.b_id,
+    };
     const payload = {
       b_use: 0,
       b_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
@@ -149,14 +146,9 @@ const bankController = {
       mb_id: "genie",
     };
 
-    const { query, values, where } = await sqlHelper.edit(
-      TABLE.BANK,
-      payload,
-      cols
-    );
-    const allVals = [...values, ...where];
-    console.log(query, allVals);
-    const [editDone] = await db.execute(query, allVals);
+    const { query, values } = await sqlHelper.edit(TABLE.BANK, payload, cols);
+    console.log(query, values);
+    const [editDone] = await db.execute(query, values);
     return editDone;
   },
 };
