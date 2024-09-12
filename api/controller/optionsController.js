@@ -135,7 +135,7 @@ const optionsController = {
   edit: async function (req) {
     console.log(req._parsedUrl.search);
     const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
-    // console.log(cols);
+    console.log(cols);
     // const cols = {
     //   op_id: 1,
     // };
@@ -149,15 +149,12 @@ const optionsController = {
       mb_id: "hanna",
     };
 
-    const { query, values, where } = await sqlHelper.edit(
+    const { query, values } = await sqlHelper.edit(
       TABLE.OPTIONS,
       payload,
       cols
     );
-    const allVals = [...values, ...where];
-    // console.log(query, allVals);
-
-    const [editDone] = await db.execute(query, allVals);
+    const [editDone] = await db.execute(query, values);
     return editDone;
   },
   //수정삭제 put

@@ -124,14 +124,9 @@ const bankController = {
       mb_id: "genie",
     };
 
-    const { query, values, where } = await sqlHelper.edit(
-      TABLE.BANK,
-      payload,
-      cols
-    );
-    const allVals = [...values, ...where];
-    const [editDone] = await db.execute(query, allVals);
-    console.log(editDone);
+    const { query, values } = await sqlHelper.edit(TABLE.BANK, payload, cols);
+    const [editDone] = await db.execute(query, values);
+    // console.log(editDone);
     return editDone;
   },
   //수정삭제 post

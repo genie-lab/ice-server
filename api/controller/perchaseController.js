@@ -130,15 +130,12 @@ const perchaseController = {
       mb_id: "hanna",
     };
 
-    const { query, values, where } = await sqlHelper.edit(
+    const { query, values } = await sqlHelper.edit(
       TABLE.PERCHASE,
       payload,
       cols
     );
-    const allVals = [...values, ...where];
-    // console.log(query, allVals);
-
-    const [editDone] = await db.execute(query, allVals);
+    const [editDone] = await db.execute(query, values);
     return editDone;
   },
   //수정삭제 put
