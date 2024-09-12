@@ -1,5 +1,5 @@
 const db = require("../../plugins/mysql");
-const { VIEW_TABLE, TABLE, DATABASE } = require("../../util/TABLE");
+const { VIEW_TABLE, TABLE } = require("../../util/TABLE");
 const sqlHelper = require("../../util/sqlHelper");
 const qs = require("qs");
 const { ip, ipv6, mac } = require("address");

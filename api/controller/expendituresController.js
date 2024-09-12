@@ -3,83 +3,83 @@ const { VIEW_TABLE, TABLE } = require("../../util/TABLE");
 const sqlHelper = require("../../util/sqlHelper");
 const qs = require("qs");
 const { ip, ipv6, mac } = require("address");
+const moment = require("../../util/moment");
 
 const expendituresController = {
+  //전체 카테고리들 get
+  categories: async function (req) {
+    const cols = req.body;
+    const { query, values } = await sqlHelper.selectLimit(
+      VIEW_TABLE.OPTIONS,
+      null,
+      cols
+    );
+    // console.log(query, values);
+    const [rows] = await db.execute(query, values);
+    // console.log(rows);
+    return rows;
+  },
   //전체목록갯수 get
   listCount: async function () {
-    const query = await sqlHelper.selectSimpleCount(VIEW_TABLE.BANK);
+    const query = await sqlHelper.selectSimpleCount(VIEW_TABLE.EXPENDITURES);
     const [[{ rowsCount }]] = await db.execute(query);
-    // console.log(rowsCount);
+    // console.log(">>>>>>>>>>", rowsCount);
     return rowsCount;
   },
   //페이지 목록 get
-  list: async function () {
-    const reqQuery = `?rowsPerPage=50&page=1&sortBy=b_id&type=desc&sortBy=b_craete_at&type=desc`;
-    const paserQs = qs.parse(reqQuery, { ignoreQueryPrefix: true });
-    // console.log(paserQs);
-    const options = {
-      rowsPerPage: "50",
-      page: "1",
-      sortBy: ["b_id", "b_create_at"],
-      type: ["desc", "desc"],
-    };
-    // const sql = "select * from view_bank  ORDER BY  b_id desc , b_create_at desc    LIMIT 0 , 50;";
+  list: async function (req) {
+    const reqQuery = req._parsedUrl.search; //req.query는 url과 같이 req.param은 객체    `?rowsPerPage=50&page=1&sortBy=b_id&type=desc&sortBy=b_craete_at&type=desc`;
+    const options = qs.parse(reqQuery, { ignoreQueryPrefix: true }); //?삭제
     const { query } = await sqlHelper.selectLimit(
       VIEW_TABLE.EXPENDITURES,
       options
     );
-    // console.log(query);
     const [rows] = await db.execute(query);
     return rows;
   },
   //where절 목록 post
   listByWhere: async function (req) {
-    //where절 여러개
-    const cols = {
-      ep_fee: "지출액",
-      ep_sender: "요금보내는사람",
-    };
-    //기간별
-
-    //페이징
+    const cols = req.body;
     const options = {
       rowsPerPage: "50",
       page: "1",
-      sortBy: ["ep_id", "ep_create_at"],
-      type: ["desc", "desc"],
+      sortBy: ["ep_update_at"],
+      type: ["desc"],
     };
-
     const { query, values } = await sqlHelper.selectLimit(
       VIEW_TABLE.EXPENDITURES,
       options,
       cols
     );
-    // console.log(query, values);
     const [rows] = await db.execute(query, values);
     return rows;
   },
+  //중복체크 post
+  duplCheck: async function (req) {
+    //함수
+    const func = ["count(*) as duplCount"];
+    //where절
+    const cols = req.body;
+    const { query, values } = await sqlHelper.selectLimit(
+      VIEW_TABLE.EXPENDITURES,
+      (options = null),
+      cols,
+      func
+    );
+    const [[{ duplCount }]] = await db.execute(query, values);
+    return duplCount;
+  },
   //추가 post
   add: async function (req) {
-    //https://www.npmjs.com/package/address
-    // const payload = {
-    //   ep_category: "취급항목",
-    //   ep_fee: "지출액",
-    //   ep_fee_date: "지출날짜",
-    //   ep_sender: "요금보내는사람",
-    //   ep_receiver: "요금받는사람",
-    //   ep_phone: "요금받는사람연락처",
-    //   ep_location: "지출담당주소",
-    //   ep_ip_at: ip(),
-    //   mb_id: "genie",
-    // };
     const payload = {
-      ep_category: "월세",
-      ep_fee: "1백만",
-      ep_fee_date: "2024-08-27 22:21:09",
-      ep_sender: "신기백",
-      ep_receiver: "홍길동",
-      ep_phone: "01044668318",
-      ep_location: "서대문",
+      ep_category: req.body.ep_category.toString(),
+      ep_fee: req.body.ep_fee,
+      ep_fee_date: req.body.ep_fee_date,
+      ep_sender: req.body.ep_sender,
+      ep_receiver: req.body.ep_receiver,
+      ep_receiver_phone: req.body.ep_receiver_phone,
+      ep_receiver_addr1: req.body.ep_receiver_addr1,
+      ep_receiver_addr2: req.body.ep_receiver_addr2,
       ep_ip_at: ip(),
       mb_id: "genie",
     };
@@ -87,56 +87,45 @@ const expendituresController = {
       TABLE.EXPENDITURES,
       payload
     );
-    console.log(query, values);
     const [insertDone] = await db.execute(query, values);
+    // console.log(insertDone);
     return insertDone;
   },
-  //수정삭제 post
+  //수정삭제 put
   edit: async function (req) {
+    console.log(req._parsedUrl.search);
+    const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
     const payload = {
-      ep_category: "관리비",
-      ep_fee: "1백만",
-      ep_fee_date: "2024-08-27 22:21:09",
-      ep_sender: "신기백",
-      ep_receiver: "홍길동",
-      ep_phone: "01044668318",
-      ep_location: "서대문",
+      ...req.body,
+      ep_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
       ep_ip_at: ip(),
-      mb_id: "genie",
+      mb_id: "hanna",
     };
-    const cols = {
-      ep_id: 2,
-    };
-
-    const { query, values, where } = await sqlHelper.edit(
+    const { query, values } = await sqlHelper.edit(
       TABLE.EXPENDITURES,
       payload,
       cols
     );
-    const allVals = [...values, ...where];
-    console.log(query, allVals);
-    const [editDone] = await db.execute(query, allVals);
+    const [editDone] = await db.execute(query, values);
     return editDone;
   },
-  //수정삭제 post
+  //수정삭제 put
   del: async function (req) {
+    const cols = {
+      ep_id: req.body.ep_id,
+    };
     const payload = {
       ep_use: 0,
+      ep_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
       ep_ip_at: ip(),
-      mb_id: "genie",
+      mb_id: "hanna",
     };
-    const cols = {
-      ep_id: 2,
-    };
-
-    const { query, values, where } = await sqlHelper.edit(
+    const { query, values } = await sqlHelper.edit(
       TABLE.EXPENDITURES,
       payload,
       cols
     );
-    const allVals = [...values, ...where];
-    console.log(query, allVals);
-    const [editDone] = await db.execute(query, allVals);
+    const [editDone] = await db.execute(query, values);
     return editDone;
   },
 };
