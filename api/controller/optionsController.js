@@ -126,6 +126,13 @@ const optionsController = {
       op_ip_at: ip(),
       mb_id: "genie",
     };
+    // console.log("add>>>", form);
+    payload.op_table = payload.op_table.replace("은행", "bank");
+    payload.op_table = payload.op_table.replace("지출", "expenditures");
+    payload.op_table = payload.op_table.replace("선택", "options");
+    payload.op_table = payload.op_table.replace("구입", "perchase");
+    payload.op_table = payload.op_table.replace("판매", "sales");
+
     const { query, values } = await sqlHelper.insert(TABLE.OPTIONS, payload);
     console.log(query, values);
     const [insertDone] = await db.execute(query, values);
