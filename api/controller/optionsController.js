@@ -8,18 +8,24 @@ const moment = require("../../util/moment");
 const optionsController = {
   //전체목록갯수 get
   tables: async function () {
-    const query = `SELECT table_name FROM information_schema.tables WHERE table_schema = '${DATABASE.ICE}'`;
+    const query = `SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = '${DATABASE.ICE}'`;
     const [rows] = await db.execute(query);
-    // console.log(rows);
+    if (rows?.length <= 0) return [];
+
+    const str = Object.keys(rows[0])[0];
+    const table_name = str === str.toLowerCase() ? str.toLowerCase() : str;
+    // console.log(str, str.toLowerCase());
+    // 키가 대문자인지 소문자인지 확인
     const tables = [];
     if (rows?.length > 0) {
       for (r in rows) {
         // console.log(rows[r]["table_name"]);
-        if (rows[r]["table_name"].indexOf("view_") <= -1) {
-          tables.push(rows[r]["table_name"]);
+        if (rows[r][table_name].indexOf("view_") <= -1) {
+          tables.push(rows[r][table_name]);
         }
       }
     }
+    // console.log(tables);
     return tables; //[]
   },
   //전체목록갯수 get
