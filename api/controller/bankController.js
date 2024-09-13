@@ -7,6 +7,19 @@ const { ip, ipv6, mac } = require("address");
 const moment = require("../../util/moment");
 
 const bankController = {
+  //전체 카테고리들 get
+  categories: async function (req) {
+    const cols = req.body;
+    const { query, values } = await sqlHelper.selectLimit(
+      VIEW_TABLE.OPTIONS,
+      null,
+      cols
+    );
+    // console.log(query, values);
+    const [rows] = await db.execute(query, values);
+    // console.log(rows);
+    return rows;
+  },
   //전체목록갯수 get
   listCount: async function () {
     const query = await sqlHelper.selectSimpleCount(VIEW_TABLE.BANK);

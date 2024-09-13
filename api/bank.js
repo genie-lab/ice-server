@@ -1,6 +1,12 @@
 const router = require("express").Router();
 const bankController = require("./controller/bankController");
 const { modelCall } = require("../util/lib");
+
+//전체카테고리들
+router.post("/categories", async (req, res) => {
+  const result = await modelCall(bankController.categories, req);
+  res.json(result);
+});
 //전체목록수
 router.get("/listCount", async (req, res) => {
   const result = await modelCall(bankController.listCount, req);
