@@ -2,6 +2,7 @@ require("dotenv").config();
 const { host, port, user, database, password } =
   require("../config")[process.env.NODE_ENV].DB;
 // console.log(require("../config")[process.env.NODE_ENV].DB);
+// console.log(host, port, user, database, password);
 const mysql = require("mysql2");
 
 function createDatabase() {
