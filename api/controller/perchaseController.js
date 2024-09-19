@@ -98,6 +98,7 @@ const perchaseController = {
   //추가 post
   add: async function (req) {
     const payload = {
+      pc_main: req.body.pc_main,
       pc_category: req.body.pc_category.toString(),
       pc_company: req.body.pc_company,
       pc_manager: req.body.pc_manager,
@@ -122,9 +123,13 @@ const perchaseController = {
     // };
     // const contents = ["국민", "우리", "기업", "네덜란드", "뉴욕", "캐나다"];
     const payload = {
-      ...req.body,
-      // pc_name: req.body.pc_name,
-      // pc_text: req.body.pc_text,
+      pc_main: req.body.pc_main,
+      pc_category: req.body.pc_category.toString(),
+      pc_company: req.body.pc_company,
+      pc_manager: req.body.pc_manager,
+      pc_phone: req.body.pc_phone,
+      pc_addr1: req.body.pc_addr1,
+      pc_addr2: req.body.pc_addr2,
       pc_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
       pc_ip_at: ip(),
       mb_id: "hanna",

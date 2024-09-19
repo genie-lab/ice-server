@@ -129,6 +129,7 @@ const bankController = {
     //   b_id: 202,
     // };
     const payload = {
+      b_main: req.body.b_main,
       b_name: req.body.b_name,
       b_account: req.body.b_account,
       b_host: req.body.b_host,

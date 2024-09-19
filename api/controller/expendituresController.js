@@ -72,6 +72,7 @@ const expendituresController = {
   //추가 post
   add: async function (req) {
     const payload = {
+      ep_main: req.body.ep_main,
       ep_category: req.body.ep_category.toString(),
       ep_fee: req.body.ep_fee,
       ep_fee_date: req.body.ep_fee_date,
@@ -96,7 +97,15 @@ const expendituresController = {
     console.log(req._parsedUrl.search);
     const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
     const payload = {
-      ...req.body,
+      ep_main: req.body.ep_main,
+      ep_category: req.body.ep_category.toString(),
+      ep_fee: req.body.ep_fee,
+      ep_fee_date: req.body.ep_fee_date,
+      ep_sender: req.body.ep_sender,
+      ep_receiver: req.body.ep_receiver,
+      ep_receiver_phone: req.body.ep_receiver_phone,
+      ep_receiver_addr1: req.body.ep_receiver_addr1,
+      ep_receiver_addr2: req.body.ep_receiver_addr2,
       ep_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
       ep_ip_at: ip(),
       mb_id: "hanna",

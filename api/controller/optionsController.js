@@ -148,9 +148,11 @@ const optionsController = {
     // };
     // const contents = ["국민", "우리", "기업", "네덜란드", "뉴욕", "캐나다"];
     const payload = {
-      ...req.body,
-      // op_name: req.body.op_name,
-      // op_text: req.body.op_text,
+      op_main: req.body.op_main,
+      op_table: req.body.op_table,
+      op_name: req.body.op_name,
+      op_text: req.body.op_text,
+      op_use: req.body.op_use,
       op_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
       op_ip_at: ip(),
       mb_id: "hanna",

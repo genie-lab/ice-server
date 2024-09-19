@@ -98,6 +98,7 @@ const salesController = {
   //추가 post
   add: async function (req) {
     const payload = {
+      s_main: req.body.s_main,
       s_category: req.body.s_category.toString(),
       s_company: req.body.s_company,
       s_manager: req.body.s_manager,
@@ -119,7 +120,15 @@ const salesController = {
     // console.log(req._parsedUrl.search);
     const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
     const payload = {
-      ...req.body,
+      s_main: req.body.s_main,
+      s_category: req.body.s_category.toString(),
+      s_company: req.body.s_company,
+      s_manager: req.body.s_manager,
+      s_phone: req.body.s_phone,
+      s_addr1: req.body.s_addr1,
+      s_addr2: req.body.s_addr2,
+      s_franchise_use: req.body.s_franchise_use,
+      s_franchise_name: req.body.s_franchise_name,
       s_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
       s_ip_at: ip(),
       mb_id: "hanna",
