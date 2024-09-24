@@ -4,6 +4,7 @@ const VIEW_TABLE = {
   EXPENDITURES: "view_expenditures",
   PERCHASE: "view_perchase",
   SALES: "view_sales",
+  MAIN: "view_stores",
 };
 const TABLE = {
   BANK: "bank",
@@ -11,6 +12,7 @@ const TABLE = {
   EXPENDITURES: "expenditures",
   PERCHASE: "perchase",
   SALES: "sales",
+  MAIN: "stores",
 };
 const DATABASE = {
   ICE: "ice",
