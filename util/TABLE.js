@@ -13,6 +13,8 @@ const TABLE = {
   PERCHASE: "perchase",
   SALES: "sales",
   MAIN: "stores",
+  SEND_MAIL: "send_mail",
+  CONFIG: "config",
 };
 const DATABASE = {
   ICE: "ice",

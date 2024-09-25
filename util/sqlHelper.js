@@ -5,13 +5,13 @@ const sqlHelper = {
     let query = `select * from ${table}`;
 
     if (funcs) {
-      query = query.replace("*", funcs[0]);
+      query = query.replace("*", funcs.join(","));
     }
 
     let sortby = [];
     let orderby = "";
     let limit = "";
-    // console.log("options", options);
+    console.log("options>>>>", options);
     if (options?.sortBy && options?.type) {
       for (let i = 0; i < options.sortBy.length; i++) {
         const sort = ` ${options.sortBy[i]} ${options.type[i]} `;

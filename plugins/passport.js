@@ -3,8 +3,17 @@ const LocalStrategy = require("passport-local").Strategy;
 const jwt = require("./jwt");
 const memberController = require("../api/controller/memberController");
 const { LV } = require("../util/level");
-
 const GoogleStrategy = require("passport-google-oauth2").Strategy;
+
+const {
+  CALLBACK_URL,
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
+  KAKAO_CLIENT_ID,
+  KAKAO_CLIENT_SECRET,
+  NAVER_CLIENT_ID,
+  NAVER_CLIENT_SECRET,
+} = $config.server;
 
 // 로그인 정책
 function loginRules(member) {
@@ -32,7 +41,7 @@ const passport = function (app) {
       async (mb_id, mb_password, done) => {
         try {
           mb_password = jwt.generatePassword(mb_password);
-          const member = await memberController.getMemberBy({
+          const member = await memberController.listByWhere({
             mb_id,
             mb_password,
           });
@@ -58,7 +67,7 @@ const passport = function (app) {
     const { mb_id } = jwt.verify(token);
     try {
       if (mb_id) {
-        const member = await memberController.getMemberBy({ mb_id });
+        const member = await memberController.listByWhere({ mb_id });
         //로그인정책추가
         const msg = loginRules(member);
         if (msg) {
@@ -71,6 +80,32 @@ const passport = function (app) {
     }
     next();
   });
+
+  //google
+  Passport.use(
+    new GoogleStrategy(
+      {
+        clientID: GOOGLE_CLIENT_ID,
+        clientSecret: GOOGLE_CLIENT_SECRET,
+        callbackURL: `${process.env.CALLBACK_URL}/api/member/social-callback/google`,
+        passReqToCallback: true,
+      },
+      async function (request, accessToken, refreshToken, profile, done) {
+        console.log("profile.id", profile.id);
+        //인증
+        if (profile && profile.id) {
+          const member = await memberController.loginGoogle(request, profile);
+          const msg = loginRules(member);
+          if (msg) {
+            return done(msg, null, null);
+          }
+          return done(null, member); // err data
+        } else {
+          return done("로그인 실패", null);
+        }
+      }
+    )
+  );
 };
 
 module.exports = passport;

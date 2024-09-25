@@ -23,7 +23,7 @@ const bankController = {
   //전체목록갯수 get
   listCount: async function () {
     const query = await sqlHelper.selectSimpleCount(VIEW_TABLE.BANK);
-    console.log(query);
+    // console.log(query);
     const [[{ rowsCount }]] = await db.execute(query);
     return rowsCount;
   },
@@ -33,6 +33,8 @@ const bankController = {
 
     const reqQuery = req._parsedUrl.search; //req.query는 url과 같이 req.param은 객체    `?rowsPerPage=50&page=1&sortBy=b_id&type=desc&sortBy=b_craete_at&type=desc`;
     const options = qs.parse(reqQuery, { ignoreQueryPrefix: true }); //?삭제
+    // console.log(req.query);
+    // const options = req.query;
     // const options = {
     //   rowsPerPage: "50",
     //   page: "1",
@@ -40,7 +42,7 @@ const bankController = {
     //   type: ["desc", "desc"],
     // };
     const { query } = await sqlHelper.selectLimit(VIEW_TABLE.BANK, options);
-    // console.log(query);
+    console.log(query);
     const [rows] = await db.execute(query);
     return rows;
   },
