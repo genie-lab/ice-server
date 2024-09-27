@@ -42,7 +42,7 @@ const configController = {
     }
   },
   menu: async (req) => {
-    // const sql = `select * from genie.config`;
+    // const sql = `select * from config`;
     // const [rows] = await db.execute(sql);
     const { all } = req.query;
     // console.log("menu all", req.user);
@@ -230,7 +230,7 @@ const configController = {
       let curGroup = "";
       let groupItems = [];
       //그룹아이템 groupItems
-      const groupSql = `select distinct cf_group from genie.config`;
+      const groupSql = `select distinct cf_group from config`;
       const [groupsRows] = await db.execute(groupSql);
       console.log("groupsRows", groupsRows);
       groupsRows.forEach((el) => {
@@ -248,13 +248,13 @@ const configController = {
         curGroup = group;
       }
 
-      //페이지당 데이터 갯수 {rowsNumber:8}
-      const pageCntSql = `select count(*) as rowsNumber from genie.config where cf_group = '${curGroup}'`;
-      const [[rowsNumber]] = await db.execute(pageCntSql);
-      // console.log("rowsNumber", rowsNumber);
+      //페이지당 데이터 갯수 {rowsCount:8}
+      const pageCntSql = `select count(*) as rowsCount from config where cf_group = '${curGroup}'`;
+      const [[rowsCount]] = await db.execute(pageCntSql);
+      // console.log("rowsCount", rowsCount);
 
       //페이지당 데이터
-      const pagePerSql = `select * from genie.config where cf_group = '${curGroup}' ${sortSql}`;
+      const pagePerSql = `select * from config where cf_group = '${curGroup}' ${sortSql}`;
       const [rows] = await db.execute(pagePerSql);
 
       const data = {
@@ -263,7 +263,7 @@ const configController = {
         // 현재그룹이름
         curGroup,
         //  * 페이지당 데이터 갯수
-        rowsNumber,
+        rowsCount,
         //  * 페이지별 데이터
         rows,
       };
@@ -308,7 +308,7 @@ const configController = {
     // 배열로 가져올것 // 그리고 for문으로 업데이트
     req.body.forEach(async (item) => {
       const { cf_key, cf_sort } = item;
-      const sql = `update genie.config set cf_sort=${cf_sort} where cf_key='${cf_key}'`;
+      const sql = `update config set cf_sort=${cf_sort} where cf_key='${cf_key}'`;
       await db.execute(sql);
     });
     return true;

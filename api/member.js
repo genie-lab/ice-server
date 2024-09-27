@@ -128,7 +128,7 @@ router.patch("/modifyPassword", async (req, res) => {
 });
 //전체목록수
 router.get("/listCount", async (req, res) => {
-  const result = await modelCall(memberController.listCount, req);
+  const result = await modelCall(memberController.listCount);
   res.json(result);
 });
 //회원목록

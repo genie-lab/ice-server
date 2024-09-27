@@ -22,11 +22,11 @@ module.exports = {
       // console.trace(e);
       $logger.error(e);
       // return { err: e.message };
-      return await lib.resData(
-        STATUS.E500.result, //status
-        STATUS.E500.resultDesc, //message
-        moment().format("YYYY-MM-DD HH:mm:ss")
-      );
+      // return await lib.resData(
+      //   STATUS.E500.result, //status
+      //   STATUS.E500.resultDesc, //message
+      //   moment().format("YYYY-MM-DD HH:mm:ss")
+      // );
     }
   },
 

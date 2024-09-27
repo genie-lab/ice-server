@@ -15,6 +15,7 @@ const TABLE = {
   MAIN: "stores",
   SEND_MAIL: "send_mail",
   CONFIG: "config",
+  MEMBER: "member",
 };
 const DATABASE = {
   ICE: "ice",

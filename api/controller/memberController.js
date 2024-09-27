@@ -1,4 +1,6 @@
 const { VIEW_TABLE, TABLE } = require("../../util/TABLE");
+const db = require("../../plugins/mysql");
+const qs = require("qs");
 const sendMailer = require("../../plugins/senderMailer");
 const sqlHelper = require("../../util/sqlHelper");
 const STATUS = require("../../util/STATUS");
@@ -56,15 +58,93 @@ function loginRules(member) {
 
 const memberController = {
   //추가
-  add: async (req) => {},
+  add: async (req) => {
+    console.log(req.body);
+
+    const symbolProperties = Object.getOwnPropertySymbols(req);
+    // symbolProperties.forEach((s) => {
+    //   console.log(s, ":", req[s]);
+    // });
+    // console.log(req[symbolProperties[2]].host); //localhost:4000
+    // const b_ip = req[symbolProperties[2]].host;
+    //b_name,b_account,b_host,b_location,b_ip_at,mb_id
+    //https://www.npmjs.com/package/address
+    const payload = {
+      ...req.body, //{ b_name: '우리', b_account: '111111', b_host: 'ㅂㅂ', b_location: '11' }
+      b_ip_at: ip(),
+      mb_id: "genie",
+    };
+    // select * from view_bank WHERE b_account=? and b_host=?    [ 'Zcidw5HO172', '신진이' ]
+    const { query, values } = await sqlHelper.insert(TABLE.BANK, payload);
+    // console.log(query, values);
+    const [insertDone] = await db.execute(query, values);
+    // console.log(insertDone);
+    return insertDone;
+  },
   //멤버 로그인 : 회원가입테이블에 로그인컬럼적용
   loginMember: async (req) => {},
   //수정
-  edit: async (req) => {},
+  edit: async (req) => {
+    console.log(req.body);
+    const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
+    console.log(cols);
+    // const cols = {
+    //   b_id: 202,
+    // };
+    const payload = {
+      b_main: req.body.b_main,
+      b_name: req.body.b_name,
+      b_account: req.body.b_account,
+      b_host: req.body.b_host,
+      b_location: req.body.b_location,
+      b_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
+      b_ip_at: ip(),
+      mb_id: "genie",
+    };
+
+    const { query, values } = await sqlHelper.edit(TABLE.BANK, payload, cols);
+    const [editDone] = await db.execute(query, values);
+    // console.log(editDone);
+    return editDone;
+  },
   //삭제
-  del: async (req) => {},
+  del: async (req) => {
+    const cols = {
+      b_id: req.body.b_id,
+    };
+    const payload = {
+      b_use: 0,
+      b_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
+      b_ip_at: ip(),
+      mb_id: "genie",
+    };
+
+    const { query, values } = await sqlHelper.edit(TABLE.BANK, payload, cols);
+    console.log(query, values);
+    const [editDone] = await db.execute(query, values);
+    return editDone;
+  },
   //중복검사
-  duplCheck: async (req) => {},
+  duplCheck: async (req) => {
+    //함수
+    const func = ["count(*) as duplCount"];
+    //where절
+    const cols = {
+      b_name: req.body.b_name,
+      b_account: req.body.b_account,
+      b_host: req.body.b_host,
+    };
+    console.log(cols);
+    const { query, values } = await sqlHelper.selectLimit(
+      TABLE.MEMBER,
+      (options = null),
+      cols,
+      func
+    );
+    // console.log(query, values);
+    const [[{ duplCount }]] = await db.execute(query, values);
+    return duplCount;
+  },
   //로그아웃
   logout: async (req) => {},
   //탈퇴
@@ -78,11 +158,75 @@ const memberController = {
   // 비밀번호수정
   modifyPassword: async (req) => {},
   //전체목록수
-  listCount: async (req) => {},
+  listCount: async () => {
+    const query = await sqlHelper.selectSimpleCount(TABLE.MEMBER);
+    const [[{ rowsCount }]] = await db.execute(query);
+    return rowsCount;
+  },
   //회원목록
-  list: async (req) => {},
+  list: async (req) => {
+    const reqQuery = req._parsedUrl.search; //req.query는 url과 같이 req.param은 객체    `?rowsPerPage=50&page=1&sortBy=b_id&type=desc&sortBy=b_craete_at&type=desc`;
+    const options = qs.parse(reqQuery, { ignoreQueryPrefix: true }); //?삭제
+    if (options?.search) {
+      const colnameSql = await sqlHelper.colnames(TABLE.MEMBER);
+      const [colnames] = await db.execute(colnameSql);
+      const searchCols = colnames.map((c) => {
+        return c.COLUMN_NAME;
+      });
+
+      const countQuery = await sqlHelper.selectSimpleCount(
+        TABLE.MEMBER,
+        options,
+        searchCols
+      );
+      const [[{ rowsCount }]] = await db.execute(countQuery);
+
+      const { query } = await sqlHelper.selectLimit(
+        TABLE.MEMBER,
+        options,
+        null,
+        null,
+        searchCols
+      );
+      const [rows] = await db.execute(query);
+      console.log(query);
+      return { rows, rowsCount: rowsCount };
+    } else {
+      const countQuery = await sqlHelper.selectSimpleCount(TABLE.MEMBER);
+      const [[{ rowsCount }]] = await db.execute(countQuery);
+      // console.log("options>", options);
+      const { query } = await sqlHelper.selectLimit(TABLE.MEMBER, options);
+      const [rows] = await db.execute(query);
+      console.log(query);
+      return { rows, rowsCount };
+    }
+  },
   //where절 목록
-  listByWhere: async (req) => {},
+  listByWhere: async (req) => {
+    const cols = req.body;
+    // console.log(cols);
+    //where절 여러개
+    // const cols = {
+    //   b_account: "Zcidw5HO172",
+    //   b_host: "신진이",
+    // };
+
+    const options = {
+      rowsPerPage: "50",
+      page: "1",
+      sortBy: ["b_update_at"],
+      type: ["desc"],
+    };
+
+    const { query, values } = await sqlHelper.selectLimit(
+      TABLE.MEMBER,
+      options,
+      cols
+    );
+    // console.log(query, values);
+    const [rows] = await db.execute(query, values);
+    return rows;
+  },
   //google login screen
   //소셜로그인
   socialCallback: async (req) => {},

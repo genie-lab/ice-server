@@ -1,17 +1,25 @@
+const db = require("../plugins/mysql");
+
 const sqlHelper = {
   //함수만들기 cols는 where절도 같이 들어감
-  selectLimit: async function (table, options = null, cols, funcs) {
+  selectLimit: async function (
+    table = "",
+    options = null,
+    cols = [],
+    funcs = [],
+    searchCols = []
+  ) {
     // const query = `select * from view_bank ORDER BY 'desc' limit 0,1`;
     let query = `select * from ${table}`;
 
-    if (funcs) {
+    if (funcs?.length > 0) {
       query = query.replace("*", funcs.join(","));
     }
 
     let sortby = [];
     let orderby = "";
     let limit = "";
-    console.log("options>>>>", options);
+    //정렬
     if (options?.sortBy && options?.type) {
       for (let i = 0; i < options.sortBy.length; i++) {
         const sort = ` ${options.sortBy[i]} ${options.type[i]} `;
@@ -20,30 +28,66 @@ const sqlHelper = {
       orderby = ` ORDER BY ${sortby.join(",")} `;
     }
 
+    //페이지
     if (options?.page !== undefined && options?.rowsPerPage !== undefined) {
       const page = options.page * options.rowsPerPage;
       limit = ` LIMIT ${page} , ${options.rowsPerPage} `;
     }
 
+    let search = "";
+    //서치
+    if (options?.search) {
+      const str = options.search;
+      const arr = str.split(" ");
+      const like = arr.join("|");
+      const regexp = ` regexp '${like}' `;
+      let searchKey = searchCols.map((s) => {
+        return ` ${s} ${regexp} `;
+      });
+      search = searchKey.join(" or ");
+      search = ` WHERE ${search} `;
+      // //서치할때는 전체페이지에서 찾기
+    }
+    // console.log("search>", search);
+
+    //where
     let key = [];
     let values = [];
-    if (cols) {
+    if (cols?.length > 0) {
       for (c in cols) {
         key.push(c + "=?");
         values.push(cols[c]);
       }
-      key = key.join(" and ");
+      let key = key.join(" and ");
       key = `WHERE ${key} `;
+      key = search ? null : key;
     }
-    query = `${query} ${key} ${orderby} ${limit}`;
-    // console.log(query);
+
+    // console.log("cols>", cols?.length);
+
+    query = `${query} ${search} ${key} ${orderby} ${limit}`;
 
     return { query, values };
   },
   //함수만들기 cols는 where절도 같이 들어감
-  selectSimpleCount: async function (table) {
+  selectSimpleCount: async function (table, options = {}, searchCols = []) {
     // const query = `select * from ${table}`;
-    const query = `select count(*) AS rowsCount from ${table}`;
+    let search = "";
+    //서치
+    if (options?.search) {
+      const str = options.search;
+      const arr = str.split(" ");
+      const like = arr.join("|");
+      const regexp = ` regexp '${like}' `;
+      let searchKey = searchCols.map((s) => {
+        return ` ${s} ${regexp} `;
+      });
+      search = searchKey.join(" or ");
+      search = ` WHERE ${search} `;
+      // //서치할때는 전체페이지에서 찾기
+    }
+    const query = `select count(*) AS rowsCount from ${table} ${search}`;
+
     return query;
   },
   //추가
@@ -89,6 +133,12 @@ const sqlHelper = {
     }
 
     return { query, values };
+  },
+
+  //컬럼명
+  colnames(table) {
+    const sql = `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '${table}';`;
+    return sql;
   },
 };
 module.exports = sqlHelper;

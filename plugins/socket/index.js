@@ -6,6 +6,7 @@ const randomId = () => crypto.randomBytes(8).toString("hex");
 const { InMemorySessionStore } = require("./sessionStore.js");
 const sessionStore = new InMemorySessionStore();
 const configHandler = require("./configHandler");
+const roomHandler = require("./roomHandler.js");
 
 const { REDIS_HOST, REDIS_PORT } = process.env;
 
@@ -62,6 +63,8 @@ const server = function (webServer) {
   io.on("connection", (socket) => {
     //handler 추가
     configHandler(io, socket);
+    roomHandler(io, socket);
+
     socket.emit("session", {
       sessionID: socket.sessionID,
       userID: socket.userID,
@@ -71,12 +74,6 @@ const server = function (webServer) {
     if (process.env.NODE_ENV == "development") {
       socket.onAny((event, ...args) => {
         console.log(`socket`, event, ...args);
-      });
-    }
-
-    if (process.env.NODE_ENV == "development") {
-      socket.onAny((event, ...args) => {
-        console.log("socket", event, ...args);
       });
     }
   });
