@@ -129,11 +129,7 @@ const memberController = {
     //함수
     const func = ["count(*) as duplCount"];
     //where절
-    const cols = {
-      b_name: req.body.b_name,
-      b_account: req.body.b_account,
-      b_host: req.body.b_host,
-    };
+    const cols = req.body;
     console.log(cols);
     const { query, values } = await sqlHelper.selectLimit(
       TABLE.MEMBER,
@@ -141,7 +137,7 @@ const memberController = {
       cols,
       func
     );
-    // console.log(query, values);
+    console.log(query, values);
     const [[{ duplCount }]] = await db.execute(query, values);
     return duplCount;
   },
@@ -197,7 +193,7 @@ const memberController = {
       // console.log("options>", options);
       const { query } = await sqlHelper.selectLimit(TABLE.MEMBER, options);
       const [rows] = await db.execute(query);
-      console.log(query);
+      // console.log(query);
       return { rows, rowsCount };
     }
   },

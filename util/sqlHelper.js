@@ -5,9 +5,9 @@ const sqlHelper = {
   selectLimit: async function (
     table = "",
     options = null,
-    cols = [],
-    funcs = [],
-    searchCols = []
+    cols = null,
+    funcs = null,
+    searchCols = null
   ) {
     // const query = `select * from view_bank ORDER BY 'desc' limit 0,1`;
     let query = `select * from ${table}`;
@@ -53,18 +53,17 @@ const sqlHelper = {
     //where
     let key = [];
     let values = [];
-    if (cols?.length > 0) {
+
+    if (cols) {
       for (c in cols) {
         key.push(c + "=?");
         values.push(cols[c]);
       }
-      let key = key.join(" and ");
+      key = key.join(" and ");
       key = `WHERE ${key} `;
       key = search ? null : key;
     }
-
-    // console.log("cols>", cols?.length);
-
+    // console.log("query", `${key} `);
     query = `${query} ${search} ${key} ${orderby} ${limit}`;
 
     return { query, values };
