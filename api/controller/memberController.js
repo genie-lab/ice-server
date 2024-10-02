@@ -26,7 +26,6 @@ function clearMemberField(member) {
   if (member.mb_birth) {
     member.mb_birth = moment(member.mb_birth).format("L");
   }
-  // console.log("member", member);
   return member;
 }
 
@@ -84,13 +83,8 @@ const memberController = {
     } else {
       payload.mb_photo = "https://picsum.photos/500/300";
     }
-    // console.log(file);
-    // console.log(payload);
     const { query, values } = await sqlHelper.insert(TABLE.MEMBER, payload);
-    // console.log(query, values);
     const [insertDone] = await db.execute(query, values);
-    // console.log(insertDone);
-    // console.log(payload.mb_photo);
     if (insertDone?.affectedRows == 1 && payload.mb_photo && file) {
       //files에 저장하기
       const filePayload = {
@@ -104,12 +98,10 @@ const memberController = {
         f_path: file.path,
         f_size: file.size,
       };
-      // console.log(filePayload);
       const { query, values } = await sqlHelper.insert(
         TABLE.FILES,
         filePayload
       );
-      // console.log(query, values);
       await db.execute(query, values);
     }
     return { insertDone, url: payload.mb_photo };
@@ -139,7 +131,6 @@ const memberController = {
       file.originalname = Buffer.from(file.originalname, "ascii").toString(
         "utf8"
       );
-      console.log(file);
       // url만들기
       const { destination, filename } = file;
       const url = `${req?.protocol}://${req?.headers?.host}/${destination}${filename}`;
@@ -181,18 +172,14 @@ const memberController = {
         }
         // db에서 내용지우기
         const { query, values } = await sqlHelper.del(TABLE.FILES, fileCols);
-        console.log(query, values);
         await db.execute(query, values);
       }
     }
 
     const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
-    console.log(cols);
 
     const { query, values } = await sqlHelper.edit(TABLE.MEMBER, payload, cols);
-    console.log(query, values);
     const [editDone] = await db.execute(query, values);
-    console.log(editDone);
     return { editDone, url: payload.mb_photo };
   },
   //삭제
@@ -208,7 +195,6 @@ const memberController = {
     };
 
     const { query, values } = await sqlHelper.edit(TABLE.MEMBER, payload, cols);
-    console.log(query, values);
     const [editDone] = await db.execute(query, values);
     return editDone;
   },
@@ -218,14 +204,12 @@ const memberController = {
     const func = ["count(*) as duplCount"];
     //where절
     const cols = req.body;
-    console.log(cols);
     const { query, values } = await sqlHelper.selectLimit(
       TABLE.MEMBER,
       (options = null),
       cols,
       func
     );
-    console.log(query, values);
     const [[{ duplCount }]] = await db.execute(query, values);
     return duplCount;
   },
@@ -273,28 +257,18 @@ const memberController = {
         searchCols
       );
       const [rows] = await db.execute(query);
-      console.log(query);
       return { rows, rowsCount: rowsCount };
     } else {
       const countQuery = await sqlHelper.selectSimpleCount(TABLE.MEMBER);
       const [[{ rowsCount }]] = await db.execute(countQuery);
-      // console.log("options>", options);
       const { query } = await sqlHelper.selectLimit(TABLE.MEMBER, options);
       const [rows] = await db.execute(query);
-      // console.log(query);
       return { rows, rowsCount };
     }
   },
   //where절 목록
   listByWhere: async (req) => {
     const cols = req.body;
-    // console.log(cols);
-    //where절 여러개
-    // const cols = {
-    //   b_account: "Zcidw5HO172",
-    //   b_host: "신진이",
-    // };
-
     const options = {
       rowsPerPage: "50",
       page: "1",
@@ -307,7 +281,6 @@ const memberController = {
       options,
       cols
     );
-    // console.log(query, values);
     const [rows] = await db.execute(query, values);
     return rows;
   },
@@ -317,7 +290,6 @@ const memberController = {
   //로그인구글
   loginGoogle: async (req, profile) => {
     let member = null;
-    console.log("first", profile);
     try {
       const sql = sqlHelper.selectLimit(TABLE.MEMBER, null, {
         mb_email: profile.email,
@@ -325,7 +297,6 @@ const memberController = {
 
       const [[row]] = await db.execute(sql.query, sql.values);
       member = clearMemberField(row); // password를 제외한 모든 내용 출력
-      // console.log("new member", member);
     } catch (e) {
       // 없으면 새로 디비저장
       const ip = getIp(req);
@@ -344,7 +315,6 @@ const memberController = {
         mb_update_ip: ip,
       };
       member = data;
-      // console.log("re member", member);
       const sql = sqlHelper.insert(TABLE.MEMBER, data);
       await db.execute(sql.query, sql.values);
     }
