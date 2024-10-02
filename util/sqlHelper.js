@@ -133,6 +133,26 @@ const sqlHelper = {
 
     return { query, values };
   },
+  //영구삭제
+  del: async function (table, cols) {
+    let query = `DELETE FROM ${table} `;
+    let key = [];
+    let values = [];
+    let where = [];
+
+    if (cols) {
+      for (c in cols) {
+        key.push(c + "=?");
+        values.push(cols[c]);
+      }
+      key = key.join(" and ");
+      key = `WHERE ${key} `;
+    }
+
+    query = `${query} ${key} `;
+
+    return { query, values };
+  },
 
   //컬럼명
   colnames(table) {

@@ -9,6 +9,7 @@ const { getIp, resData, isEmpty, deepCopy } = require("../../util/lib");
 const { LV, isGrant } = require("../../util/level");
 const jwt = require("../../plugins/jwt");
 const fs = require("fs");
+const path = require("path");
 const { VUE_APP_SERVER_PORT } = process.env;
 
 function clearMemberField(member) {
@@ -59,53 +60,140 @@ function loginRules(member) {
 const memberController = {
   //추가
   add: async (req) => {
-    console.log(req.body);
-
-    const symbolProperties = Object.getOwnPropertySymbols(req);
-    // symbolProperties.forEach((s) => {
-    //   console.log(s, ":", req[s]);
-    // });
-    // console.log(req[symbolProperties[2]].host); //localhost:4000
-    // const b_ip = req[symbolProperties[2]].host;
-    //b_name,b_account,b_host,b_location,b_ip_at,mb_id
-    //https://www.npmjs.com/package/address
+    const at = moment().format("YYYY-MM-DD HH:mm:ss");
+    const ip = getIp(req);
     const payload = {
-      ...req.body, //{ b_name: '우리', b_account: '111111', b_host: 'ㅂㅂ', b_location: '11' }
-      b_ip_at: ip(),
-      mb_id: "genie",
+      ...req.body,
+      mb_create_at: at,
+      mb_create_ip: ip,
+      mb_update_at: at,
+      mb_update_ip: ip,
     };
-    // select * from view_bank WHERE b_account=? and b_host=?    [ 'Zcidw5HO172', '신진이' ]
-    const { query, values } = await sqlHelper.insert(TABLE.BANK, payload);
+    //추가할때는 탈퇴지우기
+    delete payload.mb_leave_at;
+    //파일추가
+    const file = req?.files[0];
+    if (file) {
+      file.originalname = Buffer.from(file.originalname, "ascii").toString(
+        "utf8"
+      );
+      // url만들기
+      const { destination, filename } = req.files[0];
+      const url = `${req?.protocol}://${req?.headers?.host}/${destination}${filename}`;
+      payload.mb_photo = url;
+    } else {
+      payload.mb_photo = "https://picsum.photos/500/300";
+    }
+    // console.log(file);
+    // console.log(payload);
+    const { query, values } = await sqlHelper.insert(TABLE.MEMBER, payload);
     // console.log(query, values);
     const [insertDone] = await db.execute(query, values);
     // console.log(insertDone);
-    return insertDone;
+    // console.log(payload.mb_photo);
+    if (insertDone?.affectedRows == 1 && payload.mb_photo && file) {
+      //files에 저장하기
+      const filePayload = {
+        f_field: TABLE.MEMBER,
+        f_fieldname: insertDone.insertId,
+        f_originalname: file.originalname,
+        f_encoding: file.encoding,
+        f_mimetype: file.mimetype,
+        f_destination: file.destination,
+        f_filename: file.filename,
+        f_path: file.path,
+        f_size: file.size,
+      };
+      // console.log(filePayload);
+      const { query, values } = await sqlHelper.insert(
+        TABLE.FILES,
+        filePayload
+      );
+      // console.log(query, values);
+      await db.execute(query, values);
+    }
+    return { insertDone, url: payload.mb_photo };
   },
   //멤버 로그인 : 회원가입테이블에 로그인컬럼적용
   loginMember: async (req) => {},
   //수정
   edit: async (req) => {
-    console.log(req.body);
-    const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
-    console.log(cols);
-    // const cols = {
-    //   b_id: 202,
-    // };
+    const at = moment().format("YYYY-MM-DD HH:mm:ss");
+    const ip = getIp(req);
     const payload = {
-      b_main: req.body.b_main,
-      b_name: req.body.b_name,
-      b_account: req.body.b_account,
-      b_host: req.body.b_host,
-      b_location: req.body.b_location,
-      b_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
-      b_ip_at: ip(),
-      mb_id: "genie",
+      ...req.body,
+      mb_update_at: at,
+      mb_update_ip: ip,
     };
 
-    const { query, values } = await sqlHelper.edit(TABLE.BANK, payload, cols);
+    //탈퇴변환
+    if (payload.mb_leave_at == "true" || payload.mb_leave_at == true) {
+      payload.mb_leave_at = at;
+    } else {
+      delete payload.mb_leave_at;
+    }
+
+    //파일있을때
+    const file = req?.files[0];
+    if (file) {
+      file.originalname = Buffer.from(file.originalname, "ascii").toString(
+        "utf8"
+      );
+      console.log(file);
+      // url만들기
+      const { destination, filename } = file;
+      const url = `${req?.protocol}://${req?.headers?.host}/${destination}${filename}`;
+      payload.mb_photo = url;
+      // 지울 사진파일 찾기
+      const fileCols = {
+        f_field: TABLE.MEMBER,
+        f_fieldname: req.body.mb_idx,
+      };
+      const { query, values } = await sqlHelper.selectLimit(
+        TABLE.FILES,
+        null,
+        fileCols
+      );
+      const [rows] = await db.execute(query, values);
+      // 파일 인덱스로 destination path: 'upload\\member\\p8uf1727855103850.jpg'
+      // 폴더존재하면 파일삭제/디비삭제
+      if (rows?.length > 0) {
+        for (const i in rows) {
+          let filename = rows[i].f_filename;
+          let ext = filename.split(".");
+          ext = ext[ext?.length - 1];
+          filename = filename.replace(`.${ext}`, "");
+          const cachePath = `${rows[i].f_destination}.cache`;
+          const cacheDir = fs.readdirSync(cachePath);
+          for (const c of cacheDir) {
+            if (c.startsWith(filename)) {
+              try {
+                fs.unlinkSync(`${cachePath}/${c}`);
+              } catch (e) {}
+            }
+          }
+          if (fs.existsSync(rows[i].f_path)) {
+            //원본지움
+            try {
+              fs.unlinkSync(rows[i].f_path);
+            } catch (e) {}
+          }
+        }
+        // db에서 내용지우기
+        const { query, values } = await sqlHelper.del(TABLE.FILES, fileCols);
+        console.log(query, values);
+        await db.execute(query, values);
+      }
+    }
+
+    const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
+    console.log(cols);
+
+    const { query, values } = await sqlHelper.edit(TABLE.MEMBER, payload, cols);
+    console.log(query, values);
     const [editDone] = await db.execute(query, values);
-    // console.log(editDone);
-    return editDone;
+    console.log(editDone);
+    return { editDone, url: payload.mb_photo };
   },
   //삭제
   del: async (req) => {
@@ -119,7 +207,7 @@ const memberController = {
       mb_id: "genie",
     };
 
-    const { query, values } = await sqlHelper.edit(TABLE.BANK, payload, cols);
+    const { query, values } = await sqlHelper.edit(TABLE.MEMBER, payload, cols);
     console.log(query, values);
     const [editDone] = await db.execute(query, values);
     return editDone;

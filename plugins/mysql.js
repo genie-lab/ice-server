@@ -18,6 +18,8 @@ function createDatabase() {
           port: port,
           connectionLimit: 20,
           connectTimeout: 5000,
+          // keepAliveInitialDelay: 10000, // 0 by default.
+          // enableKeepAlive: true, // false by default.
         };
         const pool = mysql.createPool(config);
         instance = pool.promise();
