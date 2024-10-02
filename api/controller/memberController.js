@@ -117,10 +117,16 @@ const memberController = {
       mb_update_at: at,
       mb_update_ip: ip,
     };
-
+    // login시점 지우기
+    delete payload.mb_login_at;
     //탈퇴변환
-    if (payload.mb_leave_at == "true" || payload.mb_leave_at == true) {
+    if (payload.mb_leave_at === "true" || payload.mb_leave_at === true) {
       payload.mb_leave_at = at;
+    } else if (
+      payload.mb_leave_at === "false" ||
+      payload.mb_leave_at === false
+    ) {
+      payload.mb_leave_at = null;
     } else {
       delete payload.mb_leave_at;
     }
@@ -180,21 +186,42 @@ const memberController = {
 
     const { query, values } = await sqlHelper.edit(TABLE.MEMBER, payload, cols);
     const [editDone] = await db.execute(query, values);
+    if (editDone?.affectedRows == 1 && payload.mb_photo && file) {
+      //files에 저장하기
+      const filePayload = {
+        f_field: TABLE.MEMBER,
+        f_fieldname: payload.mb_idx,
+        f_originalname: file.originalname,
+        f_encoding: file.encoding,
+        f_mimetype: file.mimetype,
+        f_destination: file.destination,
+        f_filename: file.filename,
+        f_path: file.path,
+        f_size: file.size,
+      };
+      const { query, values } = await sqlHelper.insert(
+        TABLE.FILES,
+        filePayload
+      );
+      await db.execute(query, values);
+    }
     return { editDone, url: payload.mb_photo };
   },
   //삭제
   del: async (req) => {
+    const at = moment().format("YYYY-MM-DD HH:mm:ss");
+    const ip = getIp(req);
     const cols = {
-      b_id: req.body.b_id,
+      mb_idx: req.body.mb_idx,
     };
     const payload = {
-      b_use: 0,
-      b_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
-      b_ip_at: ip(),
-      mb_id: "genie",
+      mb_update_at: at,
+      mb_update_ip: ip,
+      mb_leave_at: at,
     };
 
     const { query, values } = await sqlHelper.edit(TABLE.MEMBER, payload, cols);
+    // console.log(query, values);
     const [editDone] = await db.execute(query, values);
     return editDone;
   },

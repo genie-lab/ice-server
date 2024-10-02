@@ -9,9 +9,14 @@ const upload = (tagetPath) => {
       destination: function (req, file, cb) {
         // console.log("req.files",file,  req.files);
         const path = `upload/${tagetPath}/`;
+        const cachePath = `upload/${tagetPath}/.cache`;
         const directory = fs.existsSync(path); //디렉토리 경로 입력
+        const cacheDirectory = fs.existsSync(cachePath); //디렉토리 경로 입력
         if (!directory) {
           fs.mkdirSync(path, { recursive: true });
+        }
+        if (!cacheDirectory) {
+          fs.mkdirSync(cachePath, { recursive: true });
         }
         cb(null, path);
       },
