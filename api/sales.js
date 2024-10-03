@@ -5,7 +5,6 @@ const { modelCall } = require("../util/lib");
 //전체카테고리들
 router.post("/categories", async (req, res) => {
   const result = await modelCall(salesController.categories, req);
-  console.log(result);
   res.json(result);
 });
 //전체목록수

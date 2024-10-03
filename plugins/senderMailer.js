@@ -25,7 +25,6 @@ function sendMailer() {
             subject,
             html,
           });
-          // console.log("sendMailer info", info);
           return info;
         };
       }

@@ -7,7 +7,6 @@ const upload = (tagetPath) => {
   return multer({
     storage: multer.diskStorage({
       destination: function (req, file, cb) {
-        // console.log("req.files",file,  req.files);
         const path = `upload/${tagetPath}/`;
         const cachePath = `upload/${tagetPath}/.cache`;
         const directory = fs.existsSync(path); //디렉토리 경로 입력
@@ -23,15 +22,9 @@ const upload = (tagetPath) => {
 
       // By default, multer removes file extensions so let's add them back
       filename: function (req, file, cb) {
-        // console.log("file.originalname", file.originalname);
         const ext = path.extname(file.originalname);
-        // const newName = jwt.getRandToken(4) + `${Date.now()}`;
         const newName = jwt.getRandomToken(4) + Date.now();
-        // jwt.generatePassword(file.originalname);
-
-        // console.log("ext", ext, newName);
         cb(null, `${newName}${ext}`);
-        // cb(null, Date.now() + path.extname(file.originalname));
       },
     }),
     limits: { fileSize: 20 * 1024 * 1024 }, //크기 제한 : 5MB },

@@ -106,8 +106,6 @@ const memberController = {
     }
     return { insertDone, url: payload.mb_photo };
   },
-  //멤버 로그인 : 회원가입테이블에 로그인컬럼적용
-  loginMember: async (req) => {},
   //수정
   edit: async (req) => {
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
@@ -221,7 +219,6 @@ const memberController = {
     };
 
     const { query, values } = await sqlHelper.edit(TABLE.MEMBER, payload, cols);
-    // console.log(query, values);
     const [editDone] = await db.execute(query, values);
     return editDone;
   },
@@ -240,18 +237,6 @@ const memberController = {
     const [[{ duplCount }]] = await db.execute(query, values);
     return duplCount;
   },
-  //로그아웃
-  logout: async (req) => {},
-  //탈퇴
-  leave: async (req) => {},
-  // 회원수정전 비밀번호 재확인
-  checkPassword: async (req) => {},
-  //아이디찾기
-  findId: async (req) => {},
-  //비밀번호찾기
-  findPw: async (req) => {},
-  // 비밀번호수정
-  modifyPassword: async (req) => {},
   //전체목록수
   listCount: async () => {
     const query = await sqlHelper.selectSimpleCount(TABLE.MEMBER);
@@ -260,8 +245,9 @@ const memberController = {
   },
   //회원목록
   list: async (req) => {
-    const reqQuery = req._parsedUrl.search; //req.query는 url과 같이 req.param은 객체    `?rowsPerPage=50&page=1&sortBy=b_id&type=desc&sortBy=b_craete_at&type=desc`;
-    const options = qs.parse(reqQuery, { ignoreQueryPrefix: true }); //?삭제
+    // const reqQuery = req._parsedUrl.search; //req.query는 url과 같이 req.param은 객체    `?rowsPerPage=50&page=1&sortBy=b_id&type=desc&sortBy=b_craete_at&type=desc`;
+    // const options = qs.parse(reqQuery, { ignoreQueryPrefix: true }); //?삭제
+    const options = req.query;
     if (options?.search) {
       const colnameSql = await sqlHelper.colnames(TABLE.MEMBER);
       const [colnames] = await db.execute(colnameSql);
@@ -311,6 +297,20 @@ const memberController = {
     const [rows] = await db.execute(query, values);
     return rows;
   },
+  //멤버 로그인 : 회원가입테이블에 로그인컬럼적용
+  loginMember: async (req) => {},
+  //로그아웃
+  logout: async (req) => {},
+  //탈퇴
+  leave: async (req) => {},
+  // 회원수정전 비밀번호 재확인
+  checkPassword: async (req) => {},
+  //아이디찾기
+  findId: async (req) => {},
+  //비밀번호찾기
+  findPw: async (req) => {},
+  // 비밀번호수정
+  modifyPassword: async (req) => {},
   //google login screen
   //소셜로그인
   socialCallback: async (req) => {},

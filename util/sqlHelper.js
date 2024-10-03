@@ -48,7 +48,6 @@ const sqlHelper = {
       search = ` WHERE ${search} `;
       // //서치할때는 전체페이지에서 찾기
     }
-    // console.log("search>", search);
 
     //where
     let key = [];
@@ -63,7 +62,6 @@ const sqlHelper = {
       key = `WHERE ${key} `;
       key = search ? null : key;
     }
-    // console.log("query", `${key} `);
     query = `${query} ${search} ${key} ${orderby} ${limit}`;
 
     return { query, values };

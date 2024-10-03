@@ -19,20 +19,11 @@ module.exports = {
       const result = await fn(...args);
       return result;
     } catch (e) {
-      // console.trace(e);
       $logger.error(e);
-      // return { err: e.message };
-      // return await lib.resData(
-      //   STATUS.E500.result, //status
-      //   STATUS.E500.resultDesc, //message
-      //   moment().format("YYYY-MM-DD HH:mm:ss")
-      // );
     }
   },
 
   getIp(req) {
-    // console.log("req.ip", typeof req.ip);
-    // req.ip.replace("::1", "127.0.0.1");
     const ip = req.ip;
     switch (ip) {
       case "::1":

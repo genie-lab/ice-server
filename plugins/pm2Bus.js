@@ -8,7 +8,6 @@ pm2.launchBus(function (err, pm2_bus) {
     } else {
       $config.server[data.cf_key] = data.cf_val;
     }
-    // console.log("pm2 bus>>>>>>>>>>", data);
   });
 
   //cf_key 들어옴
@@ -19,7 +18,6 @@ pm2.launchBus(function (err, pm2_bus) {
 
   //서버재시작
   pm2_bus.on("config:restart", function ({ packet }) {
-    // console.log("packet>>>>>>>>>>>", packet);
     //리눅스 명령어
     const exec = require("child_process").exec;
     exec("pm2 reload all", (err) => {

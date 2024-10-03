@@ -5,7 +5,6 @@ module.exports = (io, socket) => {
   });
   //방접속 배열
   socket.on("rooms:join", (arr) => {
-    console.log("rooms:join", arr);
     arr.forEach((room) => {
       socket.join(room);
     });

@@ -14,43 +14,21 @@ const mainController = {
       null,
       cols
     );
-    console.log(query, values);
     const [rows] = await db.execute(query, values);
-    console.log(rows);
     return rows;
   },
   //전체목록갯수 get
   listCount: async function () {
     const query = await sqlHelper.selectSimpleCount(VIEW_TABLE.MAIN);
-    // console.log(">>>>>>>>>>", query);
     const [[{ rowsCount }]] = await db.execute(query);
-    // console.log(">>>>>>>>>>", rowsCount);
     return rowsCount;
   },
   //페이지 목록 get
   list: async function (req) {
     const reqQuery = req._parsedUrl.search; //req.query는 url과 같이 req.param은 객체    `?rowsPerPage=50&page=1&sortBy=b_id&type=desc&sortBy=b_craete_at&type=desc`;
     const options = qs.parse(reqQuery, { ignoreQueryPrefix: true }); //?삭제
-    console.log(options);
-    // const options = {
-    //   rowsPerPage: "50",
-    //   page: "1",
-    //   sortBy: ["st_update_at"],
-    //   type: ["desc"],
-    // };
     const { query } = await sqlHelper.selectLimit(VIEW_TABLE.MAIN, options);
-    console.log(query);
-    // const sql = "select * from view_options   where  st_id = 51";
-    // const [rows] = await db.execute(sql);
     const [rows] = await db.execute(query);
-    //문자열을 배열로,,
-    // rows.forEach((element) => {
-    //   let str = element.st_text;
-    //   const arr = str.split(",");
-    //   console.log(arr);
-    //   element.st_text = arr;
-    // });
-    console.log(rows);
     return rows;
   },
   //where절 목록 post
@@ -73,7 +51,6 @@ const mainController = {
       options,
       cols
     );
-    // console.log(query, values);
     const [rows] = await db.execute(query, values);
     return rows;
   },
@@ -89,9 +66,7 @@ const mainController = {
       cols,
       func
     );
-    console.log(query, values);
     const [[{ duplCount }]] = await db.execute(query, values);
-    console.log(duplCount);
     return duplCount;
   },
   //추가 post
@@ -110,12 +85,10 @@ const mainController = {
     };
     const { query, values } = await sqlHelper.insert(TABLE.MAIN, payload);
     const [insertDone] = await db.execute(query, values);
-    console.log(insertDone);
     return insertDone;
   },
   //수정삭제 put
   edit: async function (req) {
-    // console.log(req._parsedUrl.search);
     const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
     const payload = {
       st_main: req.body.st_main,
@@ -137,7 +110,6 @@ const mainController = {
   },
   //수정삭제 put
   del: async function (req) {
-    console.log(req.body);
     const cols = {
       st_id: req.body.st_id,
     };
@@ -149,7 +121,6 @@ const mainController = {
     };
 
     const { query, values } = await sqlHelper.edit(TABLE.MAIN, payload, cols);
-    // console.log(query, values);
     const [editDone] = await db.execute(query, values);
     return editDone;
   },

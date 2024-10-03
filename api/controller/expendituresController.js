@@ -14,22 +14,18 @@ const expendituresController = {
       null,
       cols
     );
-    // console.log(query, values);
     const [rows] = await db.execute(query, values);
-    // console.log(rows);
     return rows;
   },
   //전체목록갯수 get
   listCount: async function () {
     const query = await sqlHelper.selectSimpleCount(VIEW_TABLE.EXPENDITURES);
     const [[{ rowsCount }]] = await db.execute(query);
-    // console.log(">>>>>>>>>>", rowsCount);
     return rowsCount;
   },
   //페이지 목록 get
   list: async function (req) {
-    const reqQuery = req._parsedUrl.search; //req.query는 url과 같이 req.param은 객체    `?rowsPerPage=50&page=1&sortBy=b_id&type=desc&sortBy=b_craete_at&type=desc`;
-    const options = qs.parse(reqQuery, { ignoreQueryPrefix: true }); //?삭제
+    const options = req.query;
     const { query } = await sqlHelper.selectLimit(
       VIEW_TABLE.EXPENDITURES,
       options
@@ -89,12 +85,10 @@ const expendituresController = {
       payload
     );
     const [insertDone] = await db.execute(query, values);
-    // console.log(insertDone);
     return insertDone;
   },
   //수정삭제 put
   edit: async function (req) {
-    console.log(req._parsedUrl.search);
     const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
     const payload = {
       ep_main: req.body.ep_main,

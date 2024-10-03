@@ -41,7 +41,6 @@ const level = {
 
   isGrant(req, lv) {
     const grant = req.user ? req.user.mb_level : 0;
-    // console.log("grant >= lv", grant >= lv);
     return grant >= lv; // grant check
   },
 };

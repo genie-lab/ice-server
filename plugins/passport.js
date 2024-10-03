@@ -47,7 +47,6 @@ const passport = function (app) {
           });
           //로그인정책추가
           const msg = loginRules(member);
-          // console.log("msg", msg);
           if (msg) {
             return done(null, null, msg); // 에러,member, info
           }
@@ -62,7 +61,6 @@ const passport = function (app) {
 
   app.use(async (req, res, next) => {
     const token = req.cookies.token || req.headers.token; // 게시판에서 비회원이 headers에 토큰보냄
-    // console.log("send to passport token", token);
     if (!token) return next();
     const { mb_id } = jwt.verify(token);
     try {
@@ -91,7 +89,6 @@ const passport = function (app) {
         passReqToCallback: true,
       },
       async function (request, accessToken, refreshToken, profile, done) {
-        console.log("profile.id", profile.id);
         //인증
         if (profile && profile.id) {
           const member = await memberController.loginGoogle(request, profile);
