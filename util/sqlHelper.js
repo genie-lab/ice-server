@@ -136,7 +136,6 @@ const sqlHelper = {
     let query = `DELETE FROM ${table} `;
     let key = [];
     let values = [];
-    let where = [];
 
     if (cols) {
       for (c in cols) {
