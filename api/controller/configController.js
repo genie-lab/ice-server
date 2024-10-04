@@ -85,20 +85,21 @@ const configController = {
 
   //재기동
   restart: async (req) => {
-    if (!isGrant(req, LV.SUPER)) {
-      const data = { err: "최고관리자만 서버를 재시작 할 수 있습니다" };
-      return resData(
-        STATUS.E200.result, //status
-        STATUS.E200.resultDesc, //message
-        moment().format("YYYY-MM-DD HH:mm:ss"),
-        data //data
-      );
-    }
-    process.send({
+    // if (!isGrant(req, LV.SUPER)) {
+    //   const data = { err: "최고관리자만 서버를 재시작 할 수 있습니다" };
+    //   return resData(
+    //     STATUS.E200.result, //status
+    //     STATUS.E200.resultDesc, //message
+    //     moment().format("YYYY-MM-DD HH:mm:ss"),
+    //     data //data
+    //   );
+    // }
+    const result = process.send({
       type: "config:restart",
       data: "restart",
     });
-    return true;
+    // console.log(result);
+    return result;
   },
   //키,값 중복검사
   duplCheck: async (req) => {
