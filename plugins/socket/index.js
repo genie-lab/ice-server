@@ -7,8 +7,8 @@ const { InMemorySessionStore } = require("./sessionStore.js");
 const sessionStore = new InMemorySessionStore();
 const configHandler = require("./configHandler");
 const roomHandler = require("./roomHandler.js");
-
-const { REDIS_HOST, REDIS_PORT } = process.env;
+const Config = require("../../config.js");
+const REDIS = Config.development;
 
 const server = function (webServer) {
   const io = new Server(webServer, {
@@ -20,8 +20,8 @@ const server = function (webServer) {
   //https://ittrue.tistory.com/318
   //c:/program files/Redis/redis-cli.exe 실행 후 ping
   const redisClient = redisAdapter({
-    host: REDIS_HOST,
-    port: REDIS_PORT,
+    host: REDIS.host,
+    port: REDIS.port,
   });
   io.adapter(redisClient);
 

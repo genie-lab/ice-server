@@ -25,7 +25,7 @@ const development = {
     port: "3306",
     user: "ice",
     database: "ice",
-    password: "tlswlsdl1!",
+    password: "ice",
   },
   REDIS: {
     host: "localhost",
