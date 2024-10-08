@@ -1,5 +1,6 @@
 module.exports = (io, socket) => {
   const update = (data) => {
+    // console.log(data);
     //cf_key, cf_val
     io.emit("config:update", data);
   };

@@ -21,11 +21,11 @@ const production = {
 const development = {
   PORT: 4000,
   DB: {
-    host: "localhost",
+    host: "127.0.0.1",
     port: "3306",
     user: "ice",
     database: "ice",
-    password: "ice",
+    password: "tlswlsdl1!",
   },
   REDIS: {
     host: "localhost",
