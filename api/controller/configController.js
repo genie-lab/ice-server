@@ -261,6 +261,41 @@ const configController = {
     configController.clearConfigItem(cols.cf_key); // 설정다시 로드
     return row;
   },
+  //클라이언트/서버리스트 가져오기
+  menu: async (req) => {
+    //관리자
+    // if (!req.user) {
+    //   const data = { err: "세션종료. 다시 로그인해주세요" };
+    //   return resData(
+    //     STATUS.E200.result, //status
+    //     STATUS.E200.resultDesc, //message
+    //     moment().format("YYYY-MM-DD HH:mm:ss"),
+    //     data //data
+    //   );
+    // }
+    // if (!isGrant(req, LV.ADMIN)) {
+    //   const data = { err: "관리자 설정 목록 권한이 없습니다" };
+    //   return resData(
+    //     STATUS.E200.result, //status
+    //     STATUS.E200.resultDesc, //message
+    //     moment().format("YYYY-MM-DD HH:mm:ss"),
+    //     data //data
+    //   );
+    // }
+
+    //페이지당 데이터
+    const cols = {
+      cf_key: "menu",
+    };
+    const { query, values } = await sqlHelper.selectLimit(
+      TABLE.CONFIG,
+      null,
+      cols
+    );
+    // console.log(query, values);
+    const [row] = await db.execute(query, values);
+    return row;
+  },
 };
 
 module.exports = configController;

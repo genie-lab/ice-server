@@ -42,5 +42,10 @@ router.delete("/del/:cf_id/:cf_key", async (req, res) => {
   const result = await modelCall(configController.del, req);
   res.json(result);
 });
+//메뉴 가져오기
+router.get("/menu", async (req, res) => {
+  const result = await modelCall(configController.menu, req);
+  res.json(result);
+});
 
 module.exports = router;
