@@ -35,8 +35,8 @@ router.get("/list", async (req, res) => {
   res.json(result);
 });
 //where절 목록
-router.post("/listByWhere", async (req, res) => {
-  const result = await modelCall(popupController.listByWhere, req);
+router.get("/displayList", async (req, res) => {
+  const result = await modelCall(popupController.displayList, req);
   res.json(result);
 });
 

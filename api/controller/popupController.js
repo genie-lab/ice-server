@@ -241,21 +241,13 @@ const popupController = {
     }
   },
   //where절 목록
-  listByWhere: async (req) => {
-    const cols = req.body;
-    const options = {
-      rowsPerPage: "50",
-      page: "1",
-      sortBy: ["pu_update_at"],
-      type: ["desc"],
-    };
-
-    const { query, values } = await sqlHelper.selectLimit(
-      TABLE.POPUP,
-      options,
-      cols
-    );
-    const [rows] = await db.execute(query, values);
+  displayList: async (req) => {
+    // 날짜 지난 것 걸러내기
+    // pu_display == 1인 것만 가져오기
+    // pu_use == 1인 것민 가져오기
+    // 보여줄 최신 날짜 순으로 정렬하기
+    const query = ` select * from popup where pu_start_at >= now() and pu_use=1 and pu_display=1 order by pu_start_at asc `;
+    const [rows] = await db.execute(query);
     return rows;
   },
 };
