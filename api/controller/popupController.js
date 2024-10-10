@@ -84,7 +84,14 @@ const popupController = {
   edit: async (req) => {
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
     const payload = {
-      ...req.body,
+      mb_name: req.body.mb_name,
+      pu_comment: req.body.pu_comment,
+      pu_id: req.body.pu_id,
+      pu_period: req.body.pu_period,
+      pu_photo: req.body.pu_photo,
+      pu_route: req.body.pu_route,
+      pu_start_at: req.body.pu_start_at,
+      pu_display: req.body.pu_display,
       pu_update_at: at,
     };
     //파일있을때
@@ -166,12 +173,12 @@ const popupController = {
   //삭제
   del: async (req) => {
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
-    const ip = getIp(req);
     const cols = {
       pu_id: req.body.pu_id,
     };
     const payload = {
       pu_update_at: at,
+      pu_use: 0,
     };
 
     const { query, values } = await sqlHelper.edit(TABLE.POPUP, payload, cols);

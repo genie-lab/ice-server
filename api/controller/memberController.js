@@ -110,6 +110,7 @@ const memberController = {
   edit: async (req) => {
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
     const ip = getIp(req);
+
     const payload = {
       ...req.body,
       mb_update_at: at,
@@ -117,6 +118,8 @@ const memberController = {
     };
     // login시점 지우기
     delete payload.mb_login_at;
+    delete payload.mb_create_at;
+
     //탈퇴변환
     if (payload.mb_leave_at === "true" || payload.mb_leave_at === true) {
       payload.mb_leave_at = at;
