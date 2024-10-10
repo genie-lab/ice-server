@@ -17,6 +17,7 @@ const TABLE = {
   CONFIG: "config",
   MEMBER: "member",
   FILES: "files",
+  POPUP: "popup",
 };
 const DATABASE = {
   ICE: "ice",

@@ -5,8 +5,6 @@ const memberController = require("./controller/memberController");
 const passport = require("passport");
 const moment = require("../util/moment");
 const jwt = require("../plugins/jwt");
-const path = require("path");
-const multer = require("multer");
 const STATUS = require("../util/STATUS");
 const uplpad = require("../util/uploadMulter");
 

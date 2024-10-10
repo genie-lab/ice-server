@@ -1,33 +1,11 @@
-const { VIEW_TABLE, TABLE } = require("../../util/TABLE");
+const { TABLE } = require("../../util/TABLE");
 const db = require("../../plugins/mysql");
 const qs = require("qs");
-const sendMailer = require("../../plugins/senderMailer");
 const sqlHelper = require("../../util/sqlHelper");
-const STATUS = require("../../util/STATUS");
 const moment = require("../../util/moment");
-const { getIp, resData, isEmpty, deepCopy } = require("../../util/lib");
-const { LV, isGrant } = require("../../util/level");
-const jwt = require("../../plugins/jwt");
+const { getIp } = require("../../util/lib");
+const { LV } = require("../../util/level");
 const fs = require("fs");
-const path = require("path");
-const { VUE_APP_SERVER_PORT } = process.env;
-
-function clearMemberField(member) {
-  delete member.mb_password;
-  member.mb_birth = moment(member.mb_birth).format("LT");
-  member.mb_create_at = moment(member.mb_create_at).format("LT");
-  member.mb_update_at = moment(member.mb_update_at).format("LT");
-  if (member.mb_login_at) {
-    member.mb_login_at = moment(member.mb_login_at).format("LT");
-  }
-  if (member.mb_leave_at) {
-    member.mb_leave_at = moment(member.mb_leave_at).format("LT");
-  }
-  if (member.mb_birth) {
-    member.mb_birth = moment(member.mb_birth).format("L");
-  }
-  return member;
-}
 
 // 레벨체크
 async function getDefaultMemberLevel() {
@@ -42,11 +20,11 @@ async function getDefaultMemberLevel() {
 }
 // 로그인 정책
 function loginRules(member) {
-  if (member.mb_leave_at) {
+  if (member.pu_leave_at) {
     return "탈퇴회원입니다";
   }
 
-  switch (member.mb_level) {
+  switch (member.pu_level) {
     case LV.BLOCK:
       "차단회원입니다";
       break;
@@ -56,20 +34,16 @@ function loginRules(member) {
   }
 }
 
-const memberController = {
+const popupController = {
   //추가
   add: async (req) => {
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
     const ip = getIp(req);
     const payload = {
       ...req.body,
-      mb_create_at: at,
-      mb_create_ip: ip,
-      mb_update_at: at,
-      mb_update_ip: ip,
+      pu_create_at: at,
+      pu_update_at: at,
     };
-    //추가할때는 탈퇴지우기
-    delete payload.mb_leave_at;
     //파일추가
     const file = req?.files[0];
     if (file) {
@@ -79,16 +53,16 @@ const memberController = {
       // url만들기
       const { destination, filename } = req.files[0];
       const url = `${req?.protocol}://${req?.headers?.host}/${destination}${filename}`;
-      payload.mb_photo = url;
+      payload.pu_photo = url;
     } else {
-      payload.mb_photo = "https://picsum.photos/500/300";
+      payload.pu_photo = "https://picsum.photos/500/300";
     }
-    const { query, values } = await sqlHelper.insert(TABLE.MEMBER, payload);
+    const { query, values } = await sqlHelper.insert(TABLE.POPUP, payload);
     const [insertDone] = await db.execute(query, values);
-    if (insertDone?.affectedRows == 1 && payload.mb_photo && file) {
+    if (insertDone?.affectedRows == 1 && payload.pu_photo && file) {
       //files에 저장하기
       const filePayload = {
-        f_field: TABLE.MEMBER,
+        f_field: TABLE.POPUP,
         f_fieldname: insertDone.insertId,
         f_originalname: file.originalname,
         f_encoding: file.encoding,
@@ -104,31 +78,15 @@ const memberController = {
       );
       await db.execute(query, values);
     }
-    return { insertDone, url: payload.mb_photo };
+    return { insertDone, url: payload.pu_photo };
   },
   //수정
   edit: async (req) => {
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
-    const ip = getIp(req);
     const payload = {
       ...req.body,
-      mb_update_at: at,
-      mb_update_ip: ip,
+      pu_update_at: at,
     };
-    // login시점 지우기
-    delete payload.mb_login_at;
-    //탈퇴변환
-    if (payload.mb_leave_at === "true" || payload.mb_leave_at === true) {
-      payload.mb_leave_at = at;
-    } else if (
-      payload.mb_leave_at === "false" ||
-      payload.mb_leave_at === false
-    ) {
-      payload.mb_leave_at = null;
-    } else {
-      delete payload.mb_leave_at;
-    }
-
     //파일있을때
     const file = req?.files[0];
     if (file) {
@@ -138,11 +96,11 @@ const memberController = {
       // url만들기
       const { destination, filename } = file;
       const url = `${req?.protocol}://${req?.headers?.host}/${destination}${filename}`;
-      payload.mb_photo = url;
+      payload.pu_photo = url;
       // 지울 사진파일 찾기
       const fileCols = {
-        f_field: TABLE.MEMBER,
-        f_fieldname: req.body.mb_idx,
+        f_field: TABLE.POPUP,
+        f_fieldname: req.body.pu_id,
       };
       const { query, values } = await sqlHelper.selectLimit(
         TABLE.FILES,
@@ -182,13 +140,13 @@ const memberController = {
 
     const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
 
-    const { query, values } = await sqlHelper.edit(TABLE.MEMBER, payload, cols);
+    const { query, values } = await sqlHelper.edit(TABLE.POPUP, payload, cols);
     const [editDone] = await db.execute(query, values);
-    if (editDone?.affectedRows == 1 && payload.mb_photo && file) {
+    if (editDone?.affectedRows == 1 && payload.pu_photo && file) {
       //files에 저장하기
       const filePayload = {
-        f_field: TABLE.MEMBER,
-        f_fieldname: payload.mb_idx,
+        f_field: TABLE.POPUP,
+        f_fieldname: payload.pu_id,
         f_originalname: file.originalname,
         f_encoding: file.encoding,
         f_mimetype: file.mimetype,
@@ -203,22 +161,20 @@ const memberController = {
       );
       await db.execute(query, values);
     }
-    return { editDone, url: payload.mb_photo };
+    return { editDone, url: payload.pu_photo };
   },
   //삭제
   del: async (req) => {
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
     const ip = getIp(req);
     const cols = {
-      mb_idx: req.body.mb_idx,
+      pu_id: req.body.pu_id,
     };
     const payload = {
-      mb_update_at: at,
-      mb_update_ip: ip,
-      mb_leave_at: at,
+      pu_update_at: at,
     };
 
-    const { query, values } = await sqlHelper.edit(TABLE.MEMBER, payload, cols);
+    const { query, values } = await sqlHelper.edit(TABLE.POPUP, payload, cols);
     const [editDone] = await db.execute(query, values);
     return editDone;
   },
@@ -229,7 +185,7 @@ const memberController = {
     //where절
     const cols = req.body;
     const { query, values } = await sqlHelper.selectLimit(
-      TABLE.MEMBER,
+      TABLE.POPUP,
       (options = null),
       cols,
       func
@@ -239,31 +195,29 @@ const memberController = {
   },
   //전체목록수
   listCount: async () => {
-    const query = await sqlHelper.selectSimpleCount(TABLE.MEMBER);
+    const query = await sqlHelper.selectSimpleCount(TABLE.POPUP);
     const [[{ rowsCount }]] = await db.execute(query);
     return rowsCount;
   },
   //회원목록
   list: async (req) => {
-    // const reqQuery = req._parsedUrl.search; //req.query는 url과 같이 req.param은 객체    `?rowsPerPage=50&page=1&sortBy=b_id&type=desc&sortBy=b_craete_at&type=desc`;
-    // const options = qs.parse(reqQuery, { ignoreQueryPrefix: true }); //?삭제
     const options = req.query;
     if (options?.search) {
-      const colnameSql = await sqlHelper.colnames(TABLE.MEMBER);
+      const colnameSql = await sqlHelper.colnames(TABLE.POPUP);
       const [colnames] = await db.execute(colnameSql);
       const searchCols = colnames.map((c) => {
         return c.COLUMN_NAME;
       });
 
       const countQuery = await sqlHelper.selectSimpleCount(
-        TABLE.MEMBER,
+        TABLE.POPUP,
         options,
         searchCols
       );
       const [[{ rowsCount }]] = await db.execute(countQuery);
 
       const { query } = await sqlHelper.selectLimit(
-        TABLE.MEMBER,
+        TABLE.POPUP,
         options,
         null,
         null,
@@ -272,9 +226,9 @@ const memberController = {
       const [rows] = await db.execute(query);
       return { rows, rowsCount: rowsCount };
     } else {
-      const countQuery = await sqlHelper.selectSimpleCount(TABLE.MEMBER);
+      const countQuery = await sqlHelper.selectSimpleCount(TABLE.POPUP);
       const [[{ rowsCount }]] = await db.execute(countQuery);
-      const { query } = await sqlHelper.selectLimit(TABLE.MEMBER, options);
+      const { query } = await sqlHelper.selectLimit(TABLE.POPUP, options);
       const [rows] = await db.execute(query);
       return { rows, rowsCount };
     }
@@ -285,69 +239,18 @@ const memberController = {
     const options = {
       rowsPerPage: "50",
       page: "1",
-      sortBy: ["mb_update_at"],
+      sortBy: ["pu_update_at"],
       type: ["desc"],
     };
 
     const { query, values } = await sqlHelper.selectLimit(
-      TABLE.MEMBER,
+      TABLE.POPUP,
       options,
       cols
     );
     const [rows] = await db.execute(query, values);
     return rows;
   },
-  //멤버 로그인 : 회원가입테이블에 로그인컬럼적용
-  loginMember: async (req) => {},
-  //로그아웃
-  logout: async (req) => {},
-  //탈퇴
-  leave: async (req) => {},
-  // 회원수정전 비밀번호 재확인
-  checkPassword: async (req) => {},
-  //아이디찾기
-  findId: async (req) => {},
-  //비밀번호찾기
-  findPw: async (req) => {},
-  // 비밀번호수정
-  modifyPassword: async (req) => {},
-  //google login screen
-  //소셜로그인
-  socialCallback: async (req) => {},
-  //로그인구글
-  loginGoogle: async (req, profile) => {
-    let member = null;
-    try {
-      const sql = sqlHelper.selectLimit(TABLE.MEMBER, null, {
-        mb_email: profile.email,
-      });
-
-      const [[row]] = await db.execute(sql.query, sql.values);
-      member = clearMemberField(row); // password를 제외한 모든 내용 출력
-    } catch (e) {
-      // 없으면 새로 디비저장
-      const ip = getIp(req);
-      const at = moment().format("YYYY-MM-DD HH:mm:ss"); // 현재시간 LT 형식으로
-      const data = {
-        mb_id: profile.sub,
-        mb_provider: "google",
-        mb_password: "",
-        mb_name: profile.name,
-        mb_email: profile.email,
-        mb_photo: profile.picture,
-        mb_level: await getDefaultMemberLevel(),
-        mb_create_at: at,
-        mb_update_at: at,
-        mb_create_ip: ip,
-        mb_update_ip: ip,
-      };
-      member = data;
-      const sql = sqlHelper.insert(TABLE.MEMBER, data);
-      await db.execute(sql.query, sql.values);
-    }
-
-    return member;
-  },
 };
 
-module.exports = memberController;
+module.exports = popupController;
