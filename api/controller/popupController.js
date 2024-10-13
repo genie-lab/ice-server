@@ -250,6 +250,74 @@ const popupController = {
     const [rows] = await db.execute(query);
     return rows;
   },
+  //where절 목록
+  get: async (req) => {
+    // 날짜 지난 것 걸러내기
+    // pu_display == 1인 것만 가져오기
+    // pu_use == 1인 것민 가져오기
+    // 보여줄 최신 날짜 순으로 정렬하기
+    const query = ` select * from popup where pu_start_at >= now() and pu_use=1 and pu_display=1 order by pu_start_at asc `;
+    const [rows] = await db.execute(query);
+    return rows;
+  },
+  //where절 목록
+  set: async (req) => {
+    console.log("req.files: ", req.files);
+    let body = req.body;
+    console.log("pu_comment ", body.pu_comment);
+
+    //파일추가
+    const files = req?.files;
+    if (files?.length > 0) {
+      for (let i = 0; i < files.length; i++) {
+        files[i].originalname = Buffer.from(
+          files[i].originalname,
+          "ascii"
+        ).toString("utf8");
+        // url만들기
+        const { destination, filename, fieldname } = files[i];
+        const url = `${req?.protocol}://${req?.headers?.host}/${destination}${filename}`;
+        console.log("url ", url);
+        console.log("pu_comment ", pu_comment);
+        console.log("url ", pu_comment.indexOf(fieldname));
+
+        // blob to url
+        srcUrl && wr_content.indexOf(filename) > -1;
+        if (url && pu_comment.indexOf(fieldname) > -1) {
+          pu_comment = pu_comment.replace(fieldname, url);
+        }
+      }
+      // 내용저장
+      const payload = {
+        pu_comment: pu_comment,
+      };
+      console.log("payload: ", payload);
+
+      // 파일저장
+      const { query, values } = await sqlHelper.insert(TABLE.POPUP, payload);
+      console.log(query, values);
+      const [insertDone] = await db.execute(query, values);
+      if (insertDone?.affectedRows == 1 && files?.length > 0) {
+        //files에 저장하기
+        const filePayload = {
+          f_field: TABLE.POPUP,
+          f_fieldname: insertDone.insertId,
+          f_originalname: file.originalname,
+          f_encoding: file.encoding,
+          f_mimetype: file.mimetype,
+          f_destination: file.destination,
+          f_filename: file.filename,
+          f_path: file.path,
+          f_size: file.size,
+        };
+        const { query, values } = await sqlHelper.insert(
+          TABLE.FILES,
+          filePayload
+        );
+        await db.execute(query, values);
+      }
+    }
+  },
 };
 
 module.exports = popupController;

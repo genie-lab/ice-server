@@ -39,5 +39,15 @@ router.get("/displayList", async (req, res) => {
   const result = await modelCall(popupController.displayList, req);
   res.json(result);
 });
+//get
+router.get("/get", async (req, res) => {
+  const result = await modelCall(popupController.get, req);
+  res.json(result);
+});
+//set
+router.post("/set", uplpad("test").any(), async (req, res) => {
+  const result = await modelCall(popupController.set, req);
+  res.json(result);
+});
 
 module.exports = router;
