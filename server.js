@@ -55,10 +55,6 @@ require("./plugins/pm2Bus");
     })
   );
 
-  // global settings
-  global.UPLOAD_PATH = path.join("upload/");
-  fs.mkdirSync(UPLOAD_PATH, { recursive: true }); // 하위까지 모두만듦
-
   //memory process
   let isDisableKeepAlive = false;
   app.use((req, res, next) => {
@@ -73,8 +69,13 @@ require("./plugins/pm2Bus");
   const passport = require("./plugins/passport");
   passport(app);
 
+  // global settings
+  global.UPLOAD_PATH = path.join("upload/");
+  fs.mkdirSync(UPLOAD_PATH, { recursive: true }); // 하위까지 모두만듦
+
   //thumbnail
   const thumbnail = require("./plugins/thumbnail");
+  // console.log("__dirname", __dirname);
   app.use("/upload/:_path", thumbnail(path.join(__dirname, "./upload")));
 
   //autoRoute
