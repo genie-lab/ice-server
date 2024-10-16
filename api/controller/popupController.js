@@ -95,8 +95,6 @@ const popupController = {
       pu_photo: req.body.pu_photo,
       pu_route: req.body.pu_route,
       pu_start_date: req.body.pu_start_date,
-      pu_start_hours: req.body.pu_start_hours,
-      pu_start_mins: req.body.pu_start_mins,
       pu_display: req.body.pu_display,
       pu_update_at: at,
     };
@@ -255,7 +253,7 @@ const popupController = {
     // 보여줄 최신 날짜 순으로 정렬하기
     const query = ` select * from popup where pu_start_date >= now() and pu_use=1 and pu_display=1 order by pu_start_date asc `;
     const [rows] = await db.execute(query);
-    // console.log(rows);
+    console.log(rows);
     return rows;
   },
   //where절 목록
