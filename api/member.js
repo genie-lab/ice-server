@@ -8,6 +8,15 @@ const jwt = require("../plugins/jwt");
 const STATUS = require("../util/STATUS");
 const uplpad = require("../util/uploadMulter");
 
+//새로고침 멤버유지
+router.post("/aliveCheck", async (req, res) => {
+  if (req?.user) {
+    const [result] = req.user;
+    res.json(result);
+  } else {
+    res.json("로그인 사용자 아님");
+  }
+});
 //추가
 router.post("/add", uplpad("member").any(), async (req, res) => {
   const result = await modelCall(memberController.add, req);
@@ -30,22 +39,13 @@ router.post("/duplCheck", async (req, res) => {
 });
 //login
 router.post("/loginLocal", async (req, res) => {
-  // 토큰 받고 // 로그인 시간 업데이트 해주고 // 기본 데이터와 함께 토큰 보내주기
-  // passport로 // 아이디 패스워드 넣고 유효검사
-  // jwt로 사용자 유효할시 web토큰발행
-  // passport, passport-local, jsonwebtoken, rand-token, yarn add 할것
   // 인증
   passport.authenticate("local", function (err, member, info) {
     // passport 안 done(내용들 , , ); 인증결과 받음
-    if (info && member?.status != 200) {
+    if (info) {
+      // console.log("info", info);
       // 에러
-      res.json(
-        resData(
-          STATUS.E300.result, //status
-          STATUS.E300.resultDesc, //message
-          moment().format("YYYY-MM-DD HH:mm:ss")
-        )
-      );
+      res.json(info);
     } else {
       // 인증승인
       //passport 문법
@@ -53,41 +53,26 @@ router.post("/loginLocal", async (req, res) => {
         // 싱글페이지라 session false처리 앞단에서 쿠키사용
         if (err) {
           console.log(err);
-          res.json(
-            resData(
-              STATUS.E400.result, //status
-              STATUS.E400.resultDesc, //message
-              moment().format("YYYY-MM-DD HH:mm:ss")
-            )
-          );
+          const result = "저장에러 발생";
+          res.json(result);
         } else {
           //토큰 가져오기
           const token = jwt.getToken(member); //member.mb_id 가져옴
+          // console.log("token~~~~~~~~~", token);
+
           //로그인 업데이트 시간 업데이트
           try {
             const data = await memberController.loginMember(req); // 업데이트 이루어짐
+            // console.log("data", data);
             member.mb_login_at = data.mb_login_at;
             member.mb_login_ip = data.mb_login_ip;
 
             // 쿠키생성 클라 넣어줌
             res.cookie("token", token, { httpOnly: true }); //클라에서 서버로 못옴
-
-            res.json(
-              resData(
-                STATUS.S200.result,
-                STATUS.S200.resultDesc,
-                moment().format("YYYY-MM-DD HH:mm:ss"),
-                { member, token }
-              )
-            );
+            const result = { member, token };
+            res.json(result);
           } catch (error) {
-            res.json(
-              resData(
-                STATUS.E300.result,
-                STATUS.E300.resultDesc + "(로그인시점 업데이트)",
-                moment().format("YYYY-MM-DD HH:mm:ss")
-              )
-            );
+            res.json({ error });
           }
         }
       }); // done함수 가져옴 // passport try 맞으면 member로 아니면 err

@@ -70,6 +70,9 @@ const memberController = {
     };
     //추가할때는 탈퇴지우기
     delete payload.mb_leave_at;
+    //password 암호화하기
+    payload.mb_password = jwt.generatePassword(payload.mb_password);
+    console.log("payload", payload);
     //파일추가
     const file = req?.files[0];
     if (file) {
@@ -81,10 +84,13 @@ const memberController = {
       const url = `${req?.protocol}://${req?.headers?.host}/${destination}${filename}`;
       payload.mb_photo = url;
     } else {
-      payload.mb_photo = "https://picsum.photos/500/300";
+      payload.mb_photo = "https://picsum.photos/500/500";
     }
     const { query, values } = await sqlHelper.insert(TABLE.MEMBER, payload);
+    console.log(query, values);
     const [insertDone] = await db.execute(query, values);
+    console.log(insertDone);
+
     if (insertDone?.affectedRows == 1 && payload.mb_photo && file) {
       //files에 저장하기
       const filePayload = {
@@ -106,6 +112,55 @@ const memberController = {
     }
     return { insertDone, url: payload.mb_photo };
   },
+  //추가
+  // addFull: async (req) => {
+  //   const at = moment().format("YYYY-MM-DD HH:mm:ss");
+  //   const ip = getIp(req);
+  //   const payload = {
+  //     ...req.body,
+  //     mb_create_at: at,
+  //     mb_create_ip: ip,
+  //     mb_update_at: at,
+  //     mb_update_ip: ip,
+  //   };
+  //   //추가할때는 탈퇴지우기
+  //   delete payload.mb_leave_at;
+  //   //파일추가
+  //   const file = req?.files[0];
+  //   if (file) {
+  //     file.originalname = Buffer.from(file.originalname, "ascii").toString(
+  //       "utf8"
+  //     );
+  //     // url만들기
+  //     const { destination, filename } = req.files[0];
+  //     const url = `${req?.protocol}://${req?.headers?.host}/${destination}${filename}`;
+  //     payload.mb_photo = url;
+  //   } else {
+  //     payload.mb_photo = "https://picsum.photos/500/500";
+  //   }
+  //   const { query, values } = await sqlHelper.insert(TABLE.MEMBER, payload);
+  //   const [insertDone] = await db.execute(query, values);
+  //   if (insertDone?.affectedRows == 1 && payload.mb_photo && file) {
+  //     //files에 저장하기
+  //     const filePayload = {
+  //       f_field: TABLE.MEMBER,
+  //       f_fieldname: insertDone.insertId,
+  //       f_originalname: file.originalname,
+  //       f_encoding: file.encoding,
+  //       f_mimetype: file.mimetype,
+  //       f_destination: file.destination,
+  //       f_filename: file.filename,
+  //       f_path: file.path,
+  //       f_size: file.size,
+  //     };
+  //     const { query, values } = await sqlHelper.insert(
+  //       TABLE.FILES,
+  //       filePayload
+  //     );
+  //     await db.execute(query, values);
+  //   }
+  //   return { insertDone, url: payload.mb_photo };
+  // },
   //수정
   edit: async (req) => {
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
@@ -283,6 +338,17 @@ const memberController = {
     }
   },
   //where절 목록
+  memberByWhere: async (cols) => {
+    const { query, values } = await sqlHelper.selectLimit(
+      TABLE.MEMBER,
+      null,
+      cols
+    );
+    // console.log("query, values", query, values);
+    const [rows] = await db.execute(query, values);
+    return rows;
+  },
+  //where절 목록
   listByWhere: async (req) => {
     const cols = req.body;
     const options = {
@@ -297,11 +363,36 @@ const memberController = {
       options,
       cols
     );
+    console.log("query, values", query, values);
     const [rows] = await db.execute(query, values);
     return rows;
   },
   //멤버 로그인 : 회원가입테이블에 로그인컬럼적용
-  loginMember: async (req) => {},
+  loginMember: async (req) => {
+    // 아이디 패스워드로 해당 레코드 찾아 로그인시간 업데이트
+    const { mb_id, mb_password } = req.body;
+    // console.log(mb_id, mb_password);
+    const password = jwt.generatePassword(mb_password);
+    const at = moment().format("YYYY-MM-DD HH:mm:ss");
+    const ip = getIp(req);
+
+    const payload = {
+      mb_update_at: at,
+      mb_login_at: at,
+      mb_update_ip: ip,
+    };
+
+    const cols = {
+      mb_id: mb_id,
+      mb_password: password,
+    };
+
+    const { query, values } = await sqlHelper.edit(TABLE.MEMBER, payload, cols);
+    // console.log("query, values", query, values);
+    const editDone = await db.execute(query, values);
+    // console.log("editDone", editDone);
+    return payload;
+  },
   //로그아웃
   logout: async (req) => {},
   //탈퇴
