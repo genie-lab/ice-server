@@ -70,6 +70,7 @@ const memberController = {
     };
     //추가할때는 탈퇴지우기
     delete payload.mb_leave_at;
+    delete payload.mb_login_at;
     //password 암호화하기
     payload.mb_password = jwt.generatePassword(payload.mb_password);
     console.log("payload", payload);
