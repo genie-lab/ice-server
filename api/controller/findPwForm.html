@@ -1,0 +1,127 @@
+<!-- <h1>{{name}}님 비밀번호 찾기용 이메일 입니다.</h1>
+<p> 아래의 링크를 따라 사이트에 접속 후 비밀번호를 재설정 해주세요</p>
+<a href="{{link}}" target="_blank">
+  <h4>비밀번호 변경하기</h4>
+</a>
+<p>링크 만료일시는 : {{time}}까지 입니다.</p> -->
+<table
+  style="
+    border-collapse: collapse;
+    border-spacing: 0;
+    border: 1px solid slateblue;
+    padding: 10px;
+  "
+>
+  <thead style="background-color: rgba(106, 90, 205, 1); color: white">
+    <th
+      colspan="2"
+      style="
+        border-collapse: collapse;
+        border-spacing: 0;
+        border: 1px solid slateblue;
+        padding: 10px;
+      "
+    >
+      <span style="color: yellow">{{company}}</span> 비밀번호 찾기용 이메일
+      입니다.
+    </th>
+  </thead>
+  <tbody>
+    <tr>
+      <td
+        colspan="2"
+        style="
+          border-collapse: collapse;
+          border-spacing: 0;
+          border: 1px solid slateblue;
+          padding: 10px;
+          border-left: hidden;
+          border-right: hidden;
+        "
+      >
+        아래의 링크를 따라 사이트에 접속 후 비밀번호를 재설정 해주세요
+      </td>
+    </tr>
+    <tr>
+      <td
+        style="
+          border-collapse: collapse;
+          border-spacing: 0;
+          border: 1px solid slateblue;
+          padding: 10px;
+          text-align: center;
+          background-color: rgba(106, 90, 205, 0.5);
+          color: white;
+          font-weight: 600;
+          border-left: hidden;
+          border-right: hidden;
+        "
+      >
+        링크
+      </td>
+      <td
+        style="
+          border-collapse: collapse;
+          border-spacing: 0;
+          border: 1px solid slateblue;
+          padding: 10px;
+          border-left: hidden;
+          border-right: hidden;
+        "
+      >
+        <a href="{{link}}" target="_blank">
+          <h4>비밀번호 변경하기</h4>
+        </a>
+      </td>
+    </tr>
+    <tr>
+      <td
+        style="
+          border-collapse: collapse;
+          border-spacing: 0;
+          border: 1px solid slateblue;
+          padding: 10px;
+          text-align: center;
+          background-color: rgba(106, 90, 205, 0.5);
+          color: white;
+          font-weight: 600;
+          border-left: hidden;
+          border-right: hidden;
+        "
+      >
+        만료시각
+      </td>
+      <td
+        style="
+          border-collapse: collapse;
+          border-spacing: 0;
+          border: 1px solid slateblue;
+          padding: 10px;
+          border-left: hidden;
+          border-right: hidden;
+        "
+      >
+        {{time}}
+      </td>
+    </tr>
+    <tr>
+      <td
+        colspan="2"
+        style="
+          border-collapse: collapse;
+          border-spacing: 0;
+          border: 1px solid slateblue;
+          padding: 5px;
+          text-align: center;
+          font-weight: 600;
+          border-left: hidden;
+          border-right: hidden;
+          color: rgba(106, 90, 205, 1);
+          border-bottom-width: revert;
+        "
+      >
+        {{company}}
+      </td>
+    </tr>
+  </tbody>
+</table>

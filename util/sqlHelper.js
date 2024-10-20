@@ -63,7 +63,6 @@ const sqlHelper = {
       key = search ? null : key;
     }
     query = `${query} ${search} ${key} ${orderby} ${limit}`;
-
     return { query, values };
   },
   //함수만들기 cols는 where절도 같이 들어감

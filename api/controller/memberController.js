@@ -10,11 +10,12 @@ const { LV, isGrant } = require("../../util/level");
 const jwt = require("../../plugins/jwt");
 const fs = require("fs");
 const path = require("path");
+const senderMailer = require("../../plugins/senderMailer");
+
 const { VUE_APP_SERVER_PORT } = process.env;
 
 function clearMemberField(member) {
   delete member.mb_password;
-  member.mb_birth = moment(member.mb_birth).format("LT");
   member.mb_create_at = moment(member.mb_create_at).format("LT");
   member.mb_update_at = moment(member.mb_update_at).format("LT");
   if (member.mb_login_at) {
@@ -329,12 +330,23 @@ const memberController = {
         searchCols
       );
       const [rows] = await db.execute(query);
+      //mb_password 삭제
+      for (idx in rows) {
+        clearMemberField(rows[idx]);
+        // console.log(rows[idx]);
+      }
+
       return { rows, rowsCount: rowsCount };
     } else {
       const countQuery = await sqlHelper.selectSimpleCount(TABLE.MEMBER);
       const [[{ rowsCount }]] = await db.execute(countQuery);
       const { query } = await sqlHelper.selectLimit(TABLE.MEMBER, options);
       const [rows] = await db.execute(query);
+      //mb_password 삭제
+      for (idx in rows) {
+        clearMemberField(rows[idx]);
+        // console.log(rows[idx]);
+      }
       return { rows, rowsCount };
     }
   },
@@ -364,7 +376,7 @@ const memberController = {
       options,
       cols
     );
-    console.log("query, values", query, values);
+    // console.log("query, values", query, values);
     const [rows] = await db.execute(query, values);
     return rows;
   },
@@ -394,18 +406,119 @@ const memberController = {
     // console.log("editDone", editDone);
     return payload;
   },
-  //로그아웃
-  logout: async (req) => {},
+
   //탈퇴
   leave: async (req) => {},
   // 회원수정전 비밀번호 재확인
   checkPassword: async (req) => {},
   //아이디찾기
-  findId: async (req) => {},
+  findId: async (req) => {
+    const cols = {
+      mb_email: req.body?.mb_email,
+    };
+    const funcs = ["mb_id"];
+
+    const { query, values } = await sqlHelper.selectLimit(
+      TABLE.MEMBER,
+      null,
+      cols,
+      funcs
+    );
+    console.log("query, values", query, values);
+    const [[rows]] = await db.execute(query, values);
+    console.log("rows", rows);
+    return rows;
+  },
   //비밀번호찾기
-  findPw: async (req) => {},
+  findPw: async (req) => {
+    // id,이메일이 들어오면 일치여부 확인 후 메일확인하슈 노티보내면서 리다이렉트 페이지 메일로 전송
+    const cols = {
+      mb_id: req.body.mb_id,
+      mb_email: req.body.mb_email,
+    };
+    const funcs = ["COUNT(*) AS cnt "];
+    const { query, values } = await sqlHelper.selectLimit(
+      TABLE.MEMBER,
+      null,
+      cols,
+      funcs
+    );
+    const [[{ cnt }]] = await db.execute(query, values);
+
+    if (cnt == 0) {
+      return { cnt, err: "일치하는 회원이 없습니다" };
+    }
+    // :hash
+    const ma_hash = jwt.getRandomToken(16);
+    // 보낼 url 만들기 http://localhost:8888/editPass/:hash
+    // html 내용변경
+    const ma_to = cols.mb_email; //받는사람이름
+    const company = "아이스관리시스템"; //보내는쪽
+    const ma_subject = `${company} 비밀번호 찾기용 이메일 입니다.`;
+    const origin = req.headers.origin;
+    const link = `${origin}/editPass/${ma_hash}`; //이동url
+    const ma_expire_at = moment().add("30", "m").format("YYYY-MM-DD HH:mm:ss"); //만료시각
+
+    let ma_content = fs.readFileSync(__dirname + "/findPwForm.html").toString();
+
+    ma_content = ma_content.replace(/{{company}}/g, company);
+    ma_content = ma_content.replace(/{{link}}/g, link);
+    ma_content = ma_content.replace(/{{time}}/g, ma_expire_at);
+    // 메일보내기 & 리턴
+    const from = `${company} 관리자`;
+
+    await senderMailer(from, ma_to, ma_subject, ma_content);
+
+    //db저장
+    const payload = {
+      ma_to,
+      ma_type: 1,
+      ma_hash,
+      ma_subject,
+      ma_content,
+      ma_expire_at,
+    };
+    const insert = await sqlHelper.insert(TABLE.MAILER, payload);
+    const [insertDone] = await db.execute(insert.query, insert.values);
+    return insertDone;
+  },
   // 비밀번호수정
-  modifyPassword: async (req) => {},
+  editPassword: async (req) => {
+    const { password, ma_hash } = req.body;
+    // console.log("password, ma_hash", password, ma_hash);
+    const delQuery = `DELETE FROM ${TABLE.MAILER} WHERE ma_type=1 AND ma_expire_at < NOW()`;
+    await db.execute(delQuery);
+    // 유효시간 안에 해쉬로 검색
+    const sql = {
+      query: `SELECT ma_to FROM ${TABLE.MAILER} WHERE  ma_hash=? AND ma_expire_at > NOW()`,
+      values: [ma_hash],
+    };
+    const [[row]] = await db.execute(sql.query, sql.values);
+    // console.log(row);
+    if (!row) {
+      return "시간이 만료되었거나 이미 처리되었습니다.";
+    }
+
+    const mb_email = row.ma_to;
+    const mb_password = await jwt.generatePassword(password);
+    // console.log(mb_password);
+
+    const { query, values } = await sqlHelper.edit(
+      TABLE.MEMBER,
+      { mb_password },
+      { mb_email }
+    );
+    // console.log(query, values);
+
+    const [editDone] = await db.execute(query, values);
+    // console.log(query, editDone);
+
+    // // 처리결과 삭제 해쉬지우기
+    const del = await sqlHelper.del(TABLE.MAILER, { ma_hash });
+    const [delDone] = await db.execute(del.query, del.values);
+    console.log(delDone);
+    return editDone.affectedRows == 1 && delDone.affectedRows == 1;
+  },
   //google login screen
   //소셜로그인
   socialCallback: async (req) => {},

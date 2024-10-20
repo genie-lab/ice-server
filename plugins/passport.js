@@ -42,7 +42,7 @@ const passport = function (app) {
         // console.log("mb_id, mb_password", mb_id, mb_password);
         try {
           mb_password = jwt.generatePassword(mb_password);
-          // console.log("mb_password", mb_password);
+          console.log("mb_password", mb_password);
           const [member] = await memberController.memberByWhere({
             mb_id,
             mb_password,
@@ -74,7 +74,7 @@ const passport = function (app) {
 
   app.use(async (req, res, next) => {
     const token = req.cookies.token || req.headers.token; // 게시판에서 비회원이 headers에 토큰보냄
-    console.log("token", token);
+    // console.log("token", token);
     if (!token) return next();
     const { mb_id } = jwt.verify(token);
     try {
@@ -85,7 +85,7 @@ const passport = function (app) {
         if (msg) {
           return next(); // 로그인 안시킴
         }
-        console.log("member~~", member);
+        // console.log("member~~", member);
         req.login(member, { session: false }, (err) => {});
         //클라이언트에게 보내주기
       }

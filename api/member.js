@@ -12,6 +12,7 @@ const uplpad = require("../util/uploadMulter");
 router.post("/aliveCheck", async (req, res) => {
   if (req?.user) {
     const [result] = req.user;
+    delete result.mb_password;
     res.json(result);
   } else {
     res.json("로그인 사용자 아님");
@@ -80,9 +81,16 @@ router.post("/loginLocal", async (req, res) => {
   })(req, res); // 즉시실행함수 선언과 동시에 호출되어 반환 https://jongminfire.dev/java-script-%EC%A6%89%EC%8B%9C%EC%8B%A4%ED%96%89%ED%95%A8%EC%88%98-iife
 });
 //로그아웃
-router.post("/logout", async (req, res) => {
-  const result = await modelCall(memberController.logout, req);
-  res.json(result);
+router.get("/logout", async (req, res) => {
+  req.logout(function (err) {
+    if (err) {
+      return next(err);
+    }
+  });
+  if (req.cookies["token"] !== undefined) {
+    res.clearCookie("token");
+  }
+  res.redirect("/");
 });
 //탈퇴
 router.post("/leave", async (req, res) => {
@@ -96,7 +104,7 @@ router.post("/checkPassword", async (req, res) => {
 });
 //아이디찾기
 router.post("/findId", async (req, res) => {
-  const result = await modelCall(memberController.findId, req.body); //name email
+  const result = await modelCall(memberController.findId, req); //name email
   res.json(result);
 });
 //비밀번호찾기
@@ -105,8 +113,8 @@ router.post("/findPw", async (req, res) => {
   res.json(result); //mb_name
 });
 // 비밀번호수정
-router.patch("/modifyPassword", async (req, res) => {
-  const result = await modelCall(memberController.modifyPassword, req);
+router.patch("/editPassword", async (req, res) => {
+  const result = await modelCall(memberController.editPassword, req);
   res.json(result);
 });
 //전체목록수
