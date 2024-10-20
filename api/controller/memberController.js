@@ -288,6 +288,10 @@ const memberController = {
     const func = ["count(*) as duplCount"];
     //where절
     const cols = req.body;
+    console.log(cols);
+    if (cols?.mb_password) {
+      cols.mb_password = jwt.generatePassword(cols.mb_password);
+    }
     const { query, values } = await sqlHelper.selectLimit(
       TABLE.MEMBER,
       (options = null),
