@@ -175,6 +175,10 @@ const memberController = {
     // login시점 지우기
     delete payload.mb_login_at;
     delete payload.mb_create_at;
+    // 비밀번호 수정시 암호화
+    if (payload?.mb_password) {
+      payload.mb_password = jwt.generatePassword(payload.mb_password);
+    }
     //탈퇴변환
     if (payload?.mb_leave_at === "true" || payload?.mb_leave_at === true) {
       payload.mb_leave_at = at;
@@ -238,8 +242,10 @@ const memberController = {
       }
     }
 
-    const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
-    console.log("req._parsedUrl.search", req._parsedUrl.search);
+    const cols = req.query;
+    // const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
+    console.log("cols", cols);
+    console.log("payload", payload);
 
     const { query, values } = await sqlHelper.edit(TABLE.MEMBER, payload, cols);
     console.log("test", query, values);
