@@ -18,7 +18,8 @@ const TABLE = {
   MEMBER: "member",
   FILES: "files",
   POPUP: "popup",
-  MAILER:'mailer'
+  MAILER:'mailer',
+  BOARD:'board',
 };
 const DATABASE = {
   ICE: "ice",
