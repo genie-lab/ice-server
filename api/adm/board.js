@@ -42,5 +42,10 @@ router.put("/del", async (req, res) => {
   const result = await modelCall(admBoardController.del, req);
   res.json(result);
 });
+//정렬
+router.post("/align", async (req,res)=>{
+  const result = await modelCall(admBoardController.align, req);
+  res.json(result)
+})
 
 module.exports = router;

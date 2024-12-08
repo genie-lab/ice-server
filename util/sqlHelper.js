@@ -6,7 +6,7 @@ const sqlHelper = {
     table = "",
     options = null,
     cols = null,
-    funcs = null,
+    funcs = [],
     searchCols = null
   ) {
     // const query = `select * from view_bank ORDER BY 'desc' limit 0,1`;

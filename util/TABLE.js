@@ -19,7 +19,13 @@ const TABLE = {
   FILES: "files",
   POPUP: "popup",
   MAILER:'mailer',
-  BOARD:'board',
+  
+  BOARD: "board",
+  BOARD_FILE: "board_file",
+  BOARD_GOOD: "board_good",
+  BOARD_TAGS: "board_tags",
+  WRITE: "write_",
+  VIEW: "view_",
 };
 const DATABASE = {
   ICE: "ice",

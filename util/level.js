@@ -40,7 +40,7 @@ const level = {
   },
 
   isGrant(req, lv) {
-    const grant = req.user ? req.user.mb_level : 0;
+    const grant = req.user ? req.user[0].mb_level : 0;
     return grant >= lv; // grant check
   },
 };
