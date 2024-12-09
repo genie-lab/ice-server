@@ -37,16 +37,10 @@ const admBoardController = {
   //where절 목록 post
   listByWhere: async function (req) {
     const cols = req.body;
-    const options = {
-      rowsPerPage: "50",
-      page: "1",
-      sortBy: ["s_update_at"],
-      type: ["desc"],
-    };
-
+    
     const { query, values } = await sqlHelper.selectLimit(
       TABLE.BOARD,
-      options,
+      null,
       cols
     );
     const [rows] = await db.execute(query, values);
@@ -70,6 +64,7 @@ const admBoardController = {
   },
   //추가 post
   add: async function (req) {
+    console.log(isGrant(req, LV.ADMIN));
     if (!isGrant(req, LV.ADMIN)) throw new Error("게시판 설정 권한이 없습니다.");
     const data = req.body;
     data.bo_category = JSON.stringify(data.bo_category);
@@ -108,7 +103,6 @@ const admBoardController = {
   },
   //수정삭제 put
   edit: async function (req) {
-
     try {
       //관리자등급 확인
       if (!isGrant(req, LV.SUPER)) {
@@ -197,8 +191,14 @@ const admBoardController = {
   },
   //정렬
   align: async function (req){
-    const {bo_category} = req.body
+    const bo_table = req.query
+    let bo_cate = req.body
+    const bo_category = JSON.stringify(bo_cate)
     // 카테고리 업데이트
+    const { query, values } = await sqlHelper.edit(TABLE.BOARD, {bo_category}, bo_table);
+    const [editDone] = await db.execute(query, values);
+    return editDone;
+
     
   },
   //수정삭제 put
