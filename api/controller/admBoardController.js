@@ -29,20 +29,16 @@ const admBoardController = {
   },
   //페이지 목록 get
   list: async function (req) {
-    const options = req.query;
-    const { query } = await sqlHelper.selectLimit(TABLE.BOARD, options);
-    const [rows] = await db.execute(query);
+    const options = {...req.query};
+    const { query,values } = await sqlHelper.selectLimit(TABLE.BOARD, options,);
+    // const { query,values } = await sqlHelper.selectLimit(TABLE.BOARD, options,{bo_use:1});
+    const [rows] = await db.execute(query,values);
     return rows;
   },
   //where절 목록 post
   listByWhere: async function (req) {
-    const cols = req.body;
-    
-    const { query, values } = await sqlHelper.selectLimit(
-      TABLE.BOARD,
-      null,
-      cols
-    );
+    const cols ={ ...req.body} ;
+    const { query, values } = await sqlHelper.selectLimit(TABLE.BOARD,cols);
     const [rows] = await db.execute(query, values);
     return rows;
   },
@@ -52,7 +48,6 @@ const admBoardController = {
     const func = ["count(*) as duplCount"];
     //where절
     const cols = req.body;
-    // console.log('cols',cols);
     const { query, values } = await sqlHelper.selectLimit(
       TABLE.BOARD,
       (options = null),
@@ -64,12 +59,12 @@ const admBoardController = {
   },
   //추가 post
   add: async function (req) {
-    // console.log(isGrant(req, LV.ADMIN));
     // if (!isGrant(req, LV.ADMIN)) throw new Error("게시판 설정 권한이 없습니다.");
     const data = req.body;
     data.bo_category = JSON.stringify(data.bo_category);
     data.bo_sort = JSON.stringify(data.bo_sort);
     data.wr_fields = JSON.stringify(data.wr_fields);
+    data.bo_ip = ip()
 
     let sqls = fs.readFileSync(path.join(__dirname, "./write_table.sql")).toString();
     sqls = sqls.replace(/{{table}}/g, data.bo_table);
@@ -97,6 +92,8 @@ const admBoardController = {
     return insertDone;
 
   },
+  // 게시판삭제복구
+
   //수정삭제 put
   edit: async function (req) {
     try {
@@ -126,7 +123,6 @@ const admBoardController = {
         const delArr = arr.filter((c) => {
           return !compareArr.includes(c.name)
         }); //1가지 카테고리가 있으면 이카테고리로 몇개 글이 있는지 파악하고 그만큼 포문돌려 지워줘야한다.
-        // 1가지 카테고리가 있으면 이카테고리로 몇개 글이 있는지 파악하고 그만큼 포문돌려 지워줘야한다.
         for (let i = 0; i < delArr?.length; i++) {
           const {query,values} = await sqlHelper.selectLimit(
             `${TABLE.WRITE}${bo_table}`,null,{ wr_category: delArr[i].name },["COUNT(*) AS cnt"]
@@ -142,7 +138,7 @@ const admBoardController = {
               const [[{ wr_id }]] = await db.execute(query,values);
 
               if (wr_id) {
-                delCheck += await admBoardController.delBoardRow(bo_table,wr_id);
+                delCheck += await admBoardController.delBoardRow(`${TABLE.WRITE}${bo_table}`,wr_id);
               }
             }
           }
@@ -170,31 +166,43 @@ const admBoardController = {
     const { query, values } = await sqlHelper.edit(TABLE.BOARD, {bo_category}, bo_table);
     const [editDone] = await db.execute(query, values);
     return editDone;
-
-    
   },
-  //게시판 삭제 put
-  delBoardRow: async function (bo_table, wr_id) {
+  //게시판글 삭제 put
+  delBoardRow: async function (wr_table, wr_id) {
     const payload = {
       wr_use: 0,
       wr_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
       wr_ip: ip(),
     };
 
-    const { query, values } = await sqlHelper.edit(bo_table, payload, {wr_id});
-    console.log('edit query,values', query, values)
+    const { query, values } = await sqlHelper.edit(wr_table, payload, {wr_id});
     await db.execute(query, values);
   },
   //수정삭제 put
-  del: async function (bo_table, wr_id) {
+  del: async function (req) {
+    // adm_board use=0 wr_board 불러올때는 사용가능한 adm_board 불러오기
+    const {bo_table} = req.body
     const payload = {
-      wr_use: 0,
-      wr_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
-      wr_ip: ip(),
+      bo_use: 0,
+      bo_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
+      bo_ip: ip(),
     };
-
-    const { query, values } = await sqlHelper.edit(bo_table, payload, {wr_id});
-    await db.execute(query, values);
+    const { query, values } = await sqlHelper.edit(TABLE.BOARD, payload, {bo_table});
+    const [delDone] = await db.execute(query, values);
+    return delDone;
+  },
+  //수정복구 put
+  restore: async function (req) {
+    // adm_board use=0 wr_board 불러올때는 사용가능한 adm_board 불러오기
+    const {bo_table} = req.query
+    const payload = {
+      bo_use: 1,
+      bo_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
+      bo_ip: ip(),
+    };
+    const { query, values } = await sqlHelper.edit(TABLE.BOARD, payload, {bo_table});
+    const [editDone] = await db.execute(query, values);
+    return editDone;
   },
 };
 module.exports = admBoardController;

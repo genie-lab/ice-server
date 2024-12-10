@@ -42,6 +42,11 @@ router.put("/del", async (req, res) => {
   const result = await modelCall(admBoardController.del, req);
   res.json(result);
 });
+//삭제복구
+router.put("/restore", async (req, res) => {
+  const result = await modelCall(admBoardController.restore, req);
+  res.json(result);
+});
 //정렬
 router.post("/align", async (req,res)=>{
   const result = await modelCall(admBoardController.align, req);
