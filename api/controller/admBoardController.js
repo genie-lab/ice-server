@@ -31,7 +31,6 @@ const admBoardController = {
   list: async function (req) {
     const options = {...req.query};
     const { query,values } = await sqlHelper.selectLimit(TABLE.BOARD, options,);
-    // const { query,values } = await sqlHelper.selectLimit(TABLE.BOARD, options,{bo_use:1});
     const [rows] = await db.execute(query,values);
     return rows;
   },
@@ -49,10 +48,7 @@ const admBoardController = {
     //where절
     const cols = req.body;
     const { query, values } = await sqlHelper.selectLimit(
-      TABLE.BOARD,
-      (options = null),
-      cols,
-      func
+      TABLE.BOARD,(options = null),cols,func
     );
     const [[{ duplCount }]] = await db.execute(query, values);
     return duplCount;
