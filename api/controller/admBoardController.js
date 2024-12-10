@@ -64,20 +64,16 @@ const admBoardController = {
   },
   //추가 post
   add: async function (req) {
-    console.log(isGrant(req, LV.ADMIN));
-    if (!isGrant(req, LV.ADMIN)) throw new Error("게시판 설정 권한이 없습니다.");
+    // console.log(isGrant(req, LV.ADMIN));
+    // if (!isGrant(req, LV.ADMIN)) throw new Error("게시판 설정 권한이 없습니다.");
     const data = req.body;
     data.bo_category = JSON.stringify(data.bo_category);
     data.bo_sort = JSON.stringify(data.bo_sort);
     data.wr_fields = JSON.stringify(data.wr_fields);
 
     let sqls = fs.readFileSync(path.join(__dirname, "./write_table.sql")).toString();
-    // console.log("sqls", sqls);
-
     sqls = sqls.replace(/{{table}}/g, data.bo_table);
     const sqlArr = sqls.split(";");
-
-    // console.log("sqlArr", sqlArr);
 
     for (const sql of sqlArr) {
       if (sql.trim()) {
@@ -104,48 +100,49 @@ const admBoardController = {
   //수정삭제 put
   edit: async function (req) {
     try {
-      //관리자등급 확인
-      if (!isGrant(req, LV.SUPER)) {
-        throw new Error("수정권한이 없습니다.");
-      }
-      const { bo_table } = req.params;
+      // //관리자등급 확인
+      // if (!isGrant(req, LV.SUPER)) {
+      //   throw new Error("수정권한이 없습니다.");
+      // }
+      const {bo_table} = req.query;
       const data = req.body;
       delete data.bo_table;
       data.bo_category = JSON.stringify(data.bo_category);
       data.bo_sort = JSON.stringify(data.bo_sort);
       data.wr_fields = JSON.stringify(data.wr_fields);
       delete data.bo_create_at;
-
       // 카테고리 추가삭제 및 수정있을시 기존것 확인 그리고 다른것 추출해서 write_ 파일 지울것
       const { query, values } = await sqlHelper.selectLimit(TABLE.BOARD, null, {bo_table}, ["bo_category"]);
+
       const [[originCategories]] = await db.execute(query, values);
       const arr = JSON.parse(originCategories.bo_category); // 원본
 
       if (arr.length > 0) {
         const compare = JSON.parse(data.bo_category);
-        const delArr = arr.filter((c) => !compare.includes(c)); //1가지 카테고리가 있으면 이카테고리로 몇개 글이 있는지 파악하고 그만큼 포문돌려 지워줘야한다.
-        const delCnt = delArr.length; // 1가지 카테고리가 있으면 이카테고리로 몇개 글이 있는지 파악하고 그만큼 포문돌려 지워줘야한다.
-
-        for (let i = 0; i < delCnt; i++) {
-          const { query, values } = await sqlHelper.selectLimit(
-            `${TABLE.WRITE}${bo_table}`, null, { wr_category: delArr[i] }, ["COUNT(*) AS cnt"]
+        const compareArr = [];
+        for(com in compare){
+          compareArr.push(compare[com].name)
+        }
+        const delArr = arr.filter((c) => {
+          return !compareArr.includes(c.name)
+        }); //1가지 카테고리가 있으면 이카테고리로 몇개 글이 있는지 파악하고 그만큼 포문돌려 지워줘야한다.
+        // 1가지 카테고리가 있으면 이카테고리로 몇개 글이 있는지 파악하고 그만큼 포문돌려 지워줘야한다.
+        for (let i = 0; i < delArr?.length; i++) {
+          const {query,values} = await sqlHelper.selectLimit(
+            `${TABLE.WRITE}${bo_table}`,null,{ wr_category: delArr[i].name },["COUNT(*) AS cnt"]
           ); // 해당 wr_id 가져오기
-          const [[{ cnt }]] = await db.execute(query, values);
-          // console.log('cnt',cnt);
+          const [[{ cnt }]] = await db.execute(query,values);
           let delCheck = 0;
           if (cnt > 0) {
             //delArr 순차적으로 데이터 지워준다
             for (let j = 0; j < cnt; j++) {
-              const { query, values } = await sqlHelper.selectLimit(
-                `${TABLE.WRITE}${bo_table}`, null, { wr_category: delArr[i] },["wr_id"]
+              const {query,values} = await sqlHelper.selectLimit(
+                `${TABLE.WRITE}${bo_table}`,null,{ wr_category: delArr[i].name },["wr_id"]
               ); // 해당 wr_id 가져오기
-              const [[{ wr_id }]] = await db.execute(query, values);
+              const [[{ wr_id }]] = await db.execute(query,values);
 
               if (wr_id) {
-                delCheck += await admBoardController.del(
-                  bo_table,
-                  wr_id
-                );
+                delCheck += await admBoardController.delBoardRow(bo_table,wr_id);
               }
             }
           }
@@ -157,37 +154,12 @@ const admBoardController = {
         ...data,
         bo_update_at: moment().format("YYYY-MM-DD HH:mm:ss"),
       };
-      const sql = sqlHelper.Update(TABLE.BOARD, payload, { bo_table });
-      const [rows] = await db.execute(sql.query, sql.values);
-      // return rows.affectedRows == 1;
-
-      return resData(
-        STATUS.S200.result,
-        STATUS.S200.resultDesc,
-        moment().format("YYYY-MM-DD HH:mm:ss"),
-        rows?.affectedRows == 1
-      );
+      const edit =  await sqlHelper.edit(TABLE.BOARD, payload, { bo_table });
+      const [editDone] = await db.execute(edit.query, edit.values);
+      return editDone;
+  
     } catch (e) {}
 
-    const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
-    const payload = {
-      s_main: req.body.s_main,
-      s_category: req.body.s_category.toString(),
-      s_company: req.body.s_company,
-      s_manager: req.body.s_manager,
-      s_phone: req.body.s_phone,
-      s_addr1: req.body.s_addr1,
-      s_addr2: req.body.s_addr2,
-      s_franchise_use: req.body.s_franchise_use,
-      s_franchise_name: req.body.s_franchise_name,
-      s_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
-      s_ip_at: ip(),
-      mb_id: "hanna",
-    };
-
-    const { query, values } = await sqlHelper.edit(TABLE.BOARD, payload, cols);
-    const [editDone] = await db.execute(query, values);
-    return editDone;
   },
   //정렬
   align: async function (req){
@@ -200,6 +172,18 @@ const admBoardController = {
     return editDone;
 
     
+  },
+  //게시판 삭제 put
+  delBoardRow: async function (bo_table, wr_id) {
+    const payload = {
+      wr_use: 0,
+      wr_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
+      wr_ip: ip(),
+    };
+
+    const { query, values } = await sqlHelper.edit(bo_table, payload, {wr_id});
+    console.log('edit query,values', query, values)
+    await db.execute(query, values);
   },
   //수정삭제 put
   del: async function (bo_table, wr_id) {
