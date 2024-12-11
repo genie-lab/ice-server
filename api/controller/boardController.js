@@ -138,6 +138,8 @@ const boardController = {
   list: async function (req) {
     const { table } = req.params;
     const options = {...req.query};
+    // console.log('options>>>>>>>>>',options);
+    // const options = { rowsPerPage: '5', page: '0', sortBy: 'wr_update_at', type: 'desc' }
     const { query,values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`, options);
     console.log(query,values);
     const [rows] = await db.execute(query,values);

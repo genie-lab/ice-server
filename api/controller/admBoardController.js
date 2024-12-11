@@ -37,7 +37,8 @@ const admBoardController = {
   //where절 목록 post
   listByWhere: async function (req) {
     const cols ={ ...req.body} ;
-    const { query, values } = await sqlHelper.selectLimit(TABLE.BOARD,cols);
+    const { query, values } = await sqlHelper.selectLimit(TABLE.BOARD,null,cols);
+    console.log(query, values);
     const [rows] = await db.execute(query, values);
     return rows;
   },
