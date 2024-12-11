@@ -40,50 +40,44 @@ const searchController = {
   },
   //태그 목록
   tagList: async function (req) {
-    const { query } = await sqlHelper.selectLimit(TABLE.BOARD_TAGS, null,['bo_tag']);
-    const [rows] = await db.execute(query);
+    const { query,values } = await sqlHelper.selectLimit(TABLE.BOARD_TAGS, null,['bo_tag']);
+    const [rows] = await db.execute(query,values);
     return rows;
   },
   //태그 추가
-  add: async function (req) {
-    const payload = {
-      s_main: req.body.s_main,
-      s_category: req.body.s_category.toString(),
-      s_company: req.body.s_company,
-      s_manager: req.body.s_manager,
-      s_phone: req.body.s_phone,
-      s_addr1: req.body.s_addr1,
-      s_addr2: req.body.s_addr2,
-      s_franchise_use: req.body.s_franchise_use,
-      s_franchise_name: req.body.s_franchise_name,
-      s_ip_at: ip(),
-      mb_id: "genie",
-    };
-    const { query, values } = await sqlHelper.insert(TABLE.SALES, payload);
-    const [insertDone] = await db.execute(query, values);
-    return insertDone;
+  tagAdd: async function (table, wr_id, wrTags) {
+    // bo_table, wr_id == pk
+    //등록전 전체 삭제
+    await searchController.tagDel(table, wr_id);
+    const tags = JSON.parse(wrTags)
+    console.log('tags',tags);
+    //등록
+    for (const bo_tag of tags) {
+      const { query,values } = await sqlHelper.insert(TABLE.BOARD_TAGS, {
+        bo_tag,
+        bo_table:table,
+        wr_id,
+      });
+
+      console.log('query,values',query,values);
+
+      await db.execute( query,values );
+    }
   },
   //태그 삭제
-  del: async function (req) {
-    const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
-    const payload = {
-      s_main: req.body.s_main,
-      s_category: req.body.s_category.toString(),
-      s_company: req.body.s_company,
-      s_manager: req.body.s_manager,
-      s_phone: req.body.s_phone,
-      s_addr1: req.body.s_addr1,
-      s_addr2: req.body.s_addr2,
-      s_franchise_use: req.body.s_franchise_use,
-      s_franchise_name: req.body.s_franchise_name,
-      s_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
-      s_ip_at: ip(),
-      mb_id: "hanna",
-    };
+  tagDel: async function (table, wr_id) {
+    const isTags = await sqlHelper.selectLimit(TABLE.BOARD_TAGS,null, {wr_id}, [' count(*) as cnt ']);
+    const [[{cnt}]]=await db.execute(isTags.query,isTags.values);
 
-    const { query, values } = await sqlHelper.edit(TABLE.SALES, payload, cols);
-    const [editDone] = await db.execute(query, values);
-    return editDone;
+    const cols ={
+      wr_id,
+      bo_table:table
+    }
+    if(cnt>0){
+      const {query,values } = await sqlHelper.del(TABLE.BOARD_TAGS, cols);
+      console.log('query,values ',query,values );
+      await db.execute(query,values);
+    }
   },
 };
 module.exports = searchController;

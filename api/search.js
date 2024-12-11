@@ -22,14 +22,4 @@ router.get("/tagList", async (req, res) => {
   const result = await modelCall(searchController.tagList, req);
   res.json(result);
 });
-//태그 추가
-router.post("/add", async (req, res) => {
-  const result = await modelCall(searchController.add, req);
-  res.json(result);
-});
-//태그 삭제
-router.put("/del", async (req, res) => {
-  const result = await modelCall(searchController.del, req);
-  res.json(result);
-});
 module.exports = router;

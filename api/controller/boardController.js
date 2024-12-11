@@ -7,9 +7,22 @@ const moment = require("../../util/moment");
 const { LV, isGrant } = require("../../util/level");
 const fs = require("fs");
 const path = require("path");
+const { generatePassword } = require("../../plugins/jwt");
+const searchController = require('./searchController')
+const getSummary = require("../../util/getSummary");
+const getImage = require("../../util/getImage");
+const { getIp } = require('../../util/lib')
 
 
 const boardController = {
+  //테이블 설정정보가져오기
+  tableConfig : async(table)=>{
+    const cols ={ bo_table : table} ;
+    const { query, values } = await sqlHelper.selectLimit(TABLE.BOARD,null,cols);
+    const [[rows]] = await db.execute(query, values);
+    return rows
+  },
+
   //전체 카테고리들 get
   menuList: async function (req) {
     const cols = req.body;
@@ -18,39 +31,117 @@ const boardController = {
     return rows;
   },
   //게시글 추가
-  add: async function (req) {
-    // if (!isGrant(req, LV.ADMIN)) throw new Error("게시판 설정 권한이 없습니다.");
-    const data = req.body;
-    data.bo_category = JSON.stringify(data.bo_category);
-    data.bo_sort = JSON.stringify(data.bo_sort);
-    data.wr_fields = JSON.stringify(data.wr_fields);
-    data.bo_ip = ip()
+  add: async (req) => {
+    const { table } = req.params;
+    const config = await boardController.tableConfig(table); //설정정보가져오기
+    const grant = isGrant(req, config.bo_write_level);
+    if (!grant) {
+      throw new Error("작성 권한이 없습니다.")
+    }
+    const row = req.body;
+    //디비 안들어가는 것 지우기
+    delete row.wrFiles;
+    // 컬럼추가
+    row.wr_summary = getSummary(row.wr_content, 250);
 
-    let sqls = fs.readFileSync(path.join(__dirname, "./write_table.sql")).toString();
-    sqls = sqls.replace(/{{table}}/g, data.bo_table);
-    const sqlArr = sqls.split(";");
+    //검색태그
+    const wrTags = row.wrTags;
+    delete row.wrTags;
 
-    for (const sql of sqlArr) {
-      if (sql.trim()) {
-        //테이블 view 생성
-        await db.execute(sql);
-      }
+    //계층형 그룹
+    //계층형 그룹
+    let sql;
+    if (row.wr_parent == 0) {
+      // 새글
+      sql = `SELECT max(wr_grp) AS wr_grp FROM ${TABLE.WRITE}${table}`; // 글쓰기 그룹을 가져옴
+      let wr_grp = (await db.execute(sql))[0][0].wr_grp; //
+      row.wr_grp = wr_grp ? wr_grp + 1 : 1; // 그룹 null이면 1
+      row.wr_order = 0; // 순서
+      row.wr_dep = 0; // 깊이
+
+    } else {
+      // 답글
+      sql = `SELECT wr_grp, wr_order, wr_dep FROM ${TABLE.WRITE}${table} WHERE wr_id=${row.wr_parent}`;
+      const [parent] = (await db.execute(sql))[0];
+      row.wr_grp = parent.wr_grp;
+      row.wr_order = parent.wr_order + 1;
+      row.wr_dep = parent.wr_dep + 1;
+      const uSql = `UPDATE ${TABLE.WRITE}${table} SET wr_order = wr_order + 1
+					WHERE wr_reply=0 AND wr_grp=${parent.wr_grp} AND wr_order >= ${row.wr_order}`;
+      await db.execute(uSql);
     }
 
+    //password 암호화
+    if (row.wr_password) {
+      row.wr_password = await generatePassword(row.wr_password);
+    }
+
+    const at = moment().format("YYYY-MM-DD HH:mm:ss");
+
+    const ip = getIp(req);
+
     const payload = {
-      ...data,
-      bo_create_at: moment().format("YYYY-MM-DD HH:mm:ss"),
-      bo_update_at: moment().format("YYYY-MM-DD HH:mm:ss"),
+      ...row,
+      wr_create_at: at,
+      wr_update_at: at,
+      wr_ip: ip,
     };
+
     const { query, values } = await sqlHelper.insert(`${TABLE.WRITE}${table}`, payload);
     const [insertDone] = await db.execute(query, values);
-    
-    //링크파일 업로드폴더
-    fs.mkdirSync(`${UPLOAD_PATH}/${data.bo_table}`, { recursive: true });
-    fs.chmodSync(`${UPLOAD_PATH}/${data.bo_table}`, 0o707);
-    
-    return insertDone;
+    const wr_id = insertDone.insertId; // auto increment id
 
+    //태그등록
+    if(wrTags?.length>0){
+      await searchController.tagAdd(table, wr_id, wrTags);
+    }
+
+    //파일추가
+    let wr_content = row.wr_content;
+    const files = req?.files;
+    if (files) {
+      for (let i = 0; i < files.length; i++) {
+        files[i].originalname = Buffer.from(files[i].originalname, "ascii").toString("utf8");
+        files[i].fieldname = Buffer.from(files[i].fieldname, "ascii").toString("utf8");
+        // url만들기
+        const { destination, filename } = files[i];
+        const url = `${req?.protocol}://${req?.headers?.host}/${destination}${filename}`;
+
+        if (insertDone?.affectedRows == 1) {
+          //files에 저장하기
+          const filePayload = {
+            f_field: `${TABLE.WRITE}${table}`,
+            f_fieldname: insertDone.insertId,
+            f_originalname: files[i].originalname,
+            f_encoding: files[i].encoding,
+            f_mimetype: files[i].mimetype,
+            f_destination: files[i].destination,
+            f_filename: files[i].filename,
+            f_path: files[i].path,
+            f_size: files[i].size,
+          };
+          const { query, values } = await sqlHelper.insert(
+            TABLE.FILES,
+            filePayload
+          );
+          await db.execute(query, values);
+        }
+
+        //blob링크를 서버쪽링크로 교체
+        const fieldname = files[i].fieldname
+        const checkname = fieldname.split('%')[0];
+        //첨부파일 아닌 본문에 있을때만 교체
+        if (url && wr_content.indexOf(checkname) > -1) {
+          wr_content = wr_content.replace(`${checkname}`,url);
+        }
+
+      }
+      //이미지 링크교체된것 최종 게시판테이블 업데이트
+      const updateQuery = await sqlHelper.edit(`${TABLE.WRITE}${table}`, {wr_content}, { wr_id });
+      await db.execute(updateQuery.query, updateQuery.values);
+    } 
+    // 게시물 아이디
+    return wr_id;
   },
   //게시글 수정
   edit: async function (req) {
