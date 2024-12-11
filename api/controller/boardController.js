@@ -11,49 +11,13 @@ const path = require("path");
 
 const boardController = {
   //전체 카테고리들 get
-  categories: async function (req) {
+  menuList: async function (req) {
     const cols = req.body;
-    const { query, values } = await sqlHelper.selectLimit(
-      TABLE.BOARD,
-      null,
-      cols
-    );
+    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,null,cols);
     const [rows] = await db.execute(query, values);
     return rows;
   },
-  //전체목록갯수 get
-  listCount: async function () {
-    const query = await sqlHelper.selectSimpleCount(TABLE.BOARD);
-    const [[{ rowsCount }]] = await db.execute(query);
-    return rowsCount;
-  },
-  //페이지 목록 get
-  list: async function (req) {
-    const options = {...req.query};
-    const { query,values } = await sqlHelper.selectLimit(TABLE.BOARD, options,);
-    const [rows] = await db.execute(query,values);
-    return rows;
-  },
-  //where절 목록 post
-  listByWhere: async function (req) {
-    const cols ={ ...req.body} ;
-    const { query, values } = await sqlHelper.selectLimit(TABLE.BOARD,cols);
-    const [rows] = await db.execute(query, values);
-    return rows;
-  },
-  //중복체크 post
-  duplCheck: async function (req) {
-    //함수
-    const func = ["count(*) as duplCount"];
-    //where절
-    const cols = req.body;
-    const { query, values } = await sqlHelper.selectLimit(
-      TABLE.BOARD,(options = null),cols,func
-    );
-    const [[{ duplCount }]] = await db.execute(query, values);
-    return duplCount;
-  },
-  //추가 post
+  //게시글 추가
   add: async function (req) {
     // if (!isGrant(req, LV.ADMIN)) throw new Error("게시판 설정 권한이 없습니다.");
     const data = req.body;
@@ -78,7 +42,7 @@ const boardController = {
       bo_create_at: moment().format("YYYY-MM-DD HH:mm:ss"),
       bo_update_at: moment().format("YYYY-MM-DD HH:mm:ss"),
     };
-    const { query, values } = await sqlHelper.insert(TABLE.BOARD, payload);
+    const { query, values } = await sqlHelper.insert(`${TABLE.WRITE}${table}`, payload);
     const [insertDone] = await db.execute(query, values);
     
     //링크파일 업로드폴더
@@ -88,9 +52,7 @@ const boardController = {
     return insertDone;
 
   },
-  // 게시판삭제복구
-
-  //수정삭제 put
+  //게시글 수정
   edit: async function (req) {
     try {
       // //관리자등급 확인
@@ -105,7 +67,7 @@ const boardController = {
       data.wr_fields = JSON.stringify(data.wr_fields);
       delete data.bo_create_at;
       // 카테고리 추가삭제 및 수정있을시 기존것 확인 그리고 다른것 추출해서 write_ 파일 지울것
-      const { query, values } = await sqlHelper.selectLimit(TABLE.BOARD, null, {bo_table}, ["bo_category"]);
+      const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`, null, {bo_table}, ["bo_category"]);
 
       const [[originCategories]] = await db.execute(query, values);
       const arr = JSON.parse(originCategories.bo_category); // 원본
@@ -146,35 +108,14 @@ const boardController = {
         ...data,
         bo_update_at: moment().format("YYYY-MM-DD HH:mm:ss"),
       };
-      const edit =  await sqlHelper.edit(TABLE.BOARD, payload, { bo_table });
+      const edit =  await sqlHelper.edit(`${TABLE.WRITE}${table}`, payload, { bo_table });
       const [editDone] = await db.execute(edit.query, edit.values);
       return editDone;
   
     } catch (e) {}
 
   },
-  //정렬
-  align: async function (req){
-    const bo_table = req.query
-    let bo_cate = req.body
-    const bo_category = JSON.stringify(bo_cate)
-    // 카테고리 업데이트
-    const { query, values } = await sqlHelper.edit(TABLE.BOARD, {bo_category}, bo_table);
-    const [editDone] = await db.execute(query, values);
-    return editDone;
-  },
-  //게시판글 삭제 put
-  delBoardRow: async function (wr_table, wr_id) {
-    const payload = {
-      wr_use: 0,
-      wr_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
-      wr_ip: ip(),
-    };
-
-    const { query, values } = await sqlHelper.edit(wr_table, payload, {wr_id});
-    await db.execute(query, values);
-  },
-  //수정삭제 put
+  //게시글 삭제
   del: async function (req) {
     // adm_board use=0 wr_board 불러올때는 사용가능한 adm_board 불러오기
     const {bo_table} = req.body
@@ -183,22 +124,115 @@ const boardController = {
       bo_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
       bo_ip: ip(),
     };
-    const { query, values } = await sqlHelper.edit(TABLE.BOARD, payload, {bo_table});
+    const { query, values } = await sqlHelper.edit(`${TABLE.WRITE}${table}`, payload, {bo_table});
     const [delDone] = await db.execute(query, values);
     return delDone;
   },
-  //수정복구 put
-  restore: async function (req) {
-    // adm_board use=0 wr_board 불러올때는 사용가능한 adm_board 불러오기
-    const {bo_table} = req.query
-    const payload = {
-      bo_use: 1,
-      bo_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
-      bo_ip: ip(),
-    };
-    const { query, values } = await sqlHelper.edit(TABLE.BOARD, payload, {bo_table});
-    const [editDone] = await db.execute(query, values);
-    return editDone;
+  //전체목록수
+  listCount: async function () {
+    const query = await sqlHelper.selectSimpleCount(`${TABLE.WRITE}${table}`);
+    const [[{ rowsCount }]] = await db.execute(query);
+    return rowsCount;
+  },
+  //페이지 목록
+  list: async function (req) {
+    const { table } = req.params;
+    const options = {...req.query};
+    const { query,values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`, options);
+    console.log(query,values);
+    const [rows] = await db.execute(query,values);
+    return rows;
+  },
+  //where절 목록 
+  listByWhere: async function (req) {
+    const cols ={ ...req.body} ;
+    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const [rows] = await db.execute(query, values);
+    return rows;
+  },
+  //비멤버 토큰체크 
+  tokenCheck: async function (req) {
+    const cols ={ ...req.body} ;
+    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const [rows] = await db.execute(query, values);
+    return rows;
+  },
+  //최근 게시물 가져오기 
+  latest: async function (req) {
+    const cols ={ ...req.body} ;
+    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const [rows] = await db.execute(query, values);
+    return rows;
+  },
+  //게시물 관련 목록을 가져옴 // 이전글/다음글/관련글
+  listInfo: async function (req) {
+    const cols ={ ...req.body} ;
+    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const [rows] = await db.execute(query, values);
+    return rows;
+  },
+  //조회수 증가 
+  viewUp: async function (req) {
+    const cols ={ ...req.body} ;
+    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const [rows] = await db.execute(query, values);
+    return rows;
+  },
+  //댓글목록
+  commentList: async function (req) {
+    const cols ={ ...req.body} ;
+    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const [rows] = await db.execute(query, values);
+    return rows;
+  },
+  //댓글추가
+  commentAdd: async function (req) {
+    const cols ={ ...req.body} ;
+    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const [rows] = await db.execute(query, values);
+    return rows;
+  },
+  //댓글수정
+  commentEdit: async function (req) {
+    const cols ={ ...req.body} ;
+    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const [rows] = await db.execute(query, values);
+    return rows;
+  },
+  //댓글삭제
+  commentDel: async function (req) {
+    const cols ={ ...req.body} ;
+    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const [rows] = await db.execute(query, values);
+    return rows;
+  },
+  //답글추가 
+  replyAdd: async function (req) {
+    const cols ={ ...req.body} ;
+    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const [rows] = await db.execute(query, values);
+    return rows;
+  },
+  //답글수정
+  replyEdit: async function (req) {
+    const cols ={ ...req.body} ;
+    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const [rows] = await db.execute(query, values);
+    return rows;
+  },
+  //답글삭제 
+  replyDel: async function (req) {
+    const cols ={ ...req.body} ;
+    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const [rows] = await db.execute(query, values);
+    return rows;
+  },
+  //파일다운로드 
+  download: async function (req) {
+    const cols ={ ...req.body} ;
+    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const [rows] = await db.execute(query, values);
+    return rows;
   },
 };
 module.exports = boardController;
