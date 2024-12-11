@@ -145,8 +145,8 @@ const boardController = {
   },
   //where절 목록 
   listByWhere: async function (req) {
-    const cols ={ ...req.body} ;
-    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const {table,id} =req.params;
+    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`, null, {wr_id:id});
     const [rows] = await db.execute(query, values);
     return rows;
   },

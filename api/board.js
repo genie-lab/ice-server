@@ -39,7 +39,7 @@ router.get("/:table/list", async (req, res) => {
   res.json(result);
 });
 //where절 목록
-router.post("/:table/listByWhere", async (req, res) => {
+router.post("/:table/:id/listByWhere", async (req, res) => {
   const result = await modelCall(boardController.listByWhere, req);
   res.json(result);
 });

@@ -26,6 +26,7 @@ const TABLE = {
   BOARD_TAGS: "board_tags",
   WRITE: "write_",
   VIEW: "view_",
+
 };
 const DATABASE = {
   ICE: "ice",
