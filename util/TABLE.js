@@ -21,7 +21,6 @@ const TABLE = {
   MAILER:'mailer',
   
   BOARD: "board",
-  BOARD_FILE: "board_file",
   BOARD_GOOD: "board_good",
   BOARD_TAGS: "board_tags",
   WRITE: "write_",

@@ -9,6 +9,7 @@ const fs = require("fs");
 const path = require("path");
 const { generatePassword } = require("../../plugins/jwt");
 const searchController = require('./searchController')
+const { getFlag } = require("./goodController");
 const getSummary = require("../../util/getSummary");
 const getImage = require("../../util/getImage");
 const { getIp, isEmpty } = require('../../util/lib')
@@ -250,12 +251,31 @@ const boardController = {
   },
   //where절 목록 
   listByWhere: async function (req) {
-    const {table,id} =req.params;
-    const config = await boardController.tableConfig(table); //설정정보가져오기
-    if(isEmpty(config)){
-      throw new Error("사용중지된 게시판입니다") 
-    }
-    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`, null, {wr_id:id});
+    const bo_table = req.params.table;
+    const table = `${TABLE.VIEW}${req.params.table}`;
+    const wr_id = req.params.id;
+    const member = req.user[0];
+    const conf = await boardController.tableConfig(bo_table)
+    const [[config]] = await db.execute(conf.query, conf.values);
+    const grant = isGrant(req, config.bo_list_level);
+    if (!grant) { return res.json({ err: "목록읽기 권한이 없습니다." }); }
+    
+    const { query, values } = await sqlHelper.selectLimit(table, null, {wr_id});
+    const [[item]] = await db.execute(query, values);
+    const row = item;
+    if (!rows) { return res.json({ err: "게시물이 없습니다" }) }
+    
+    await boardController.addFiles(bo_table, row);// file관련 item.wrImgs 본문내용, item.wrFiles 첨부파일
+    await boardController.addGoodFlag(bo_table, row, member);// good
+    await searchController.addTags(bo_table, wr_id, row);// tags
+
+    delete row.wr_password; //비번삭제
+    return row;
+
+  },
+  //테이블설정정보  //내부용
+  tableConfig: async function (cols) {
+    const { query, values } = await sqlHelper.selectLimit(TABLE.BOARD,null,cols);
     const [rows] = await db.execute(query, values);
     return rows;
   },
@@ -268,18 +288,101 @@ const boardController = {
   },
   //최근 게시물 가져오기 
   latest: async function (req) {
-    const {table, options} =req.body;
-    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,options);
-    console.log('latest',query,values)
-    const [rows] = await db.execute(query, values);
-    return rows;
+    const {table, limit} =req.body;
+    const config = await boardController.tableConfig(table); //설정정보가져오기
+    if(isEmpty(config)){
+      throw new Error("사용중지된 게시판입니다") 
+    }
+    const sql = sqlHelper.selectLimit(table, null, { wr_reply: 0 }); // 부모글
+    const manyReplys = sql.query + ` ORDER BY replys DESC, wr_update_at DESC LIMIT ${limit}`; // 댓글 수
+    const manyViews = sql.query + ` ORDER BY wr_view DESC, wr_update_at DESC LIMIT ${limit}`; // 본 수
+    const manyGoods = sql.query + ` ORDER BY good DESC, wr_update_at DESC LIMIT ${limit}`; // 좋아요
+    sql.query += ` ORDER BY wr_update_at DESC LIMIT ${limit}`; // 부모글
+
+    const [rows] = await db.execute(sql.query, sql.values); // 부모글
+    const [replys] = await db.execute(manyReplys, sql.values); // 댓글 수
+    const [views] = await db.execute(manyViews, sql.values); // 본 수
+    const [goods] = await db.execute(manyGoods, sql.values); // 좋아요
+
+    // 썸네일 이미지 연결 - 게시물에 연관 파일을 붙인다.
+    for (const item in rows) {
+      const row = item;
+      await boardController.addFiles(table, row);
+      await searchController.addTags(table, row); // tags
+      row.thumb = getImage(config, row);
+    }
+    // 댓글 게시물에 연관파일을 붙인다
+    for (const item in replys) {
+      const row = item;
+      await boardController.addFiles(table, row);
+      await searchController.addTags(table, row); // tags
+      row.thumb = getImage(config, row);
+    }
+    return { title:config.bo_title, rows, replys, views, goods }; //게시판이름, 부모글5,답글5,조회수5,좋아요5
+  },
+  //최근 게시물 가져오기에 파일 붙이기 //내부용
+  addFiles : async function(table, row){
+    //파일테이블내역 불러오기
+    cols={
+      f_field:table,
+      f_fieldname:row.wr_id,
+    }
+    funcs=['f_id','f_originalname','f_encoding','f_mimetype','f_destination','f_filename','f_path','f_size']
+    const {query, values} = sqlHelper.selectLimit(TABLE.FILES, null, cols,funcs);
+    const [files] = await db.execute(query, values);
+    row.wrImgs = []; //본문에 첨부된 이미지
+    row.wrFiles = []; //첨부파일
+    for (const file in files) {
+      const src = file.f_originalname; //파일이름
+      const idx = src.lastindexOf('.');
+      const filename =src.substring(0,idx+1)
+      if (row.wr_content.indexOf(filename) < 0) {
+        //없으면 첨부파일
+        file.remove = false;
+        row.wrFiles.push(file);
+      } else {
+        row.wrImgs.push(file);
+      }
+    }
+  },
+  //최근게시물에 태그붙이기 //내부용
+  addTags: async function (table, row){
+    //태그테이블내역 불러오기
+    cols={
+      bo_tag:table,
+      wr_id:row.wr_id,
+    }
+    funcs=['bo_tag']
+    const {query, values} = sqlHelper.selectLimit(TABLE.BOARD_TAGS, null, cols,funcs);
+    const [tags] = await db.execute(query, values);
+    row.wrTags=[]
+    for (const tag of tags){
+      row.wrTags.push(tag.bo_tag)
+    }
+  },
+  //좋아요 붙이기 //내부용
+  addGoodFlag: async function (table,row,member){
+    if(member){
+      row.goodFlag = await getFlag(table,row,member) //goodController에서
+    }else{ 
+      row.goodFlag = 0
+    }
   },
   //게시물 관련 목록을 가져옴 // 이전글/다음글/관련글
   listInfo: async function (req) {
-    const cols ={ ...req.body} ;
-    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
-    const [rows] = await db.execute(query, values);
-    return rows;
+    const bo_table = req.params.table;
+    const table = `${TABLE.VIEW}${req.params.table}`;
+    const wr_id = req.params.id;
+    const member = req.user[0];
+    const conf = await boardController.tableConfig(bo_table)
+    const [[config]] = await db.execute(conf.query, conf.values);
+    // const grant = isGrant(req, config.bo_list_level);
+    // if (!grant) { return res.json({ err: "목록읽기 권한이 없습니다." }); }
+
+
+    // const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    // const [rows] = await db.execute(query, values);
+    // return rows;
   },
   //조회수 증가 
   viewUp: async function (req) {
