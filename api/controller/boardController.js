@@ -268,8 +268,9 @@ const boardController = {
   },
   //최근 게시물 가져오기 
   latest: async function (req) {
-    const cols ={ ...req.body} ;
-    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const {table, options} =req.body;
+    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,options);
+    console.log('latest',query,values)
     const [rows] = await db.execute(query, values);
     return rows;
   },
