@@ -50,7 +50,6 @@ const searchController = {
     //등록전 전체 삭제
     await searchController.tagDel(table, wr_id);
     const tags = JSON.parse(wrTags)
-    console.log('tags',tags);
     //등록
     for (const bo_tag of tags) {
       const { query,values } = await sqlHelper.insert(TABLE.BOARD_TAGS, {
@@ -58,9 +57,6 @@ const searchController = {
         bo_table:table,
         wr_id,
       });
-
-      console.log('query,values',query,values);
-
       await db.execute( query,values );
     }
   },
