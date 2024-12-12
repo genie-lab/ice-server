@@ -38,7 +38,6 @@ const admBoardController = {
   listByWhere: async function (req) {
     const cols ={ ...req.body} ;
     const { query, values } = await sqlHelper.selectLimit(TABLE.BOARD,null,cols);
-    console.log(query, values);
     const [rows] = await db.execute(query, values);
     return rows;
   },

@@ -11,14 +11,16 @@ const { generatePassword } = require("../../plugins/jwt");
 const searchController = require('./searchController')
 const getSummary = require("../../util/getSummary");
 const getImage = require("../../util/getImage");
-const { getIp } = require('../../util/lib')
+const { getIp, isEmpty } = require('../../util/lib')
 
 
 const boardController = {
-  //테이블 설정정보가져오기
+
+  //테이블 설정정보가져오기 //서버내부용
   tableConfig : async(table)=>{
-    const cols ={ bo_table : table} ;
+    const cols ={ bo_table : table, bo_use : 1} ;
     const { query, values } = await sqlHelper.selectLimit(TABLE.BOARD,null,cols);
+    // console.log('query, values>>',query, values)
     const [[rows]] = await db.execute(query, values);
     return rows
   },
@@ -34,6 +36,9 @@ const boardController = {
   add: async (req) => {
     const { table } = req.params;
     const config = await boardController.tableConfig(table); //설정정보가져오기
+    if(isEmpty(config)){
+      throw new Error("사용중지된 게시판입니다") 
+    }
     const grant = isGrant(req, config.bo_write_level);
     if (!grant) {
       throw new Error("작성 권한이 없습니다.")
@@ -221,6 +226,11 @@ const boardController = {
   },
   //전체목록수
   listCount: async function () {
+    const { table } = req.params;
+    const config = await boardController.tableConfig(table); //설정정보가져오기
+    if(isEmpty(config)){
+      throw new Error("사용중지된 게시판입니다") 
+    }
     const query = await sqlHelper.selectSimpleCount(`${TABLE.WRITE}${table}`);
     const [[{ rowsCount }]] = await db.execute(query);
     return rowsCount;
@@ -231,6 +241,8 @@ const boardController = {
     const options = {...req.query};
     // console.log('options>>>>>>>>>',options);
     // const options = { rowsPerPage: '5', page: '0', sortBy: 'wr_update_at', type: 'desc' }
+    //사용중인 테이블인지 확인 
+
     const { query,values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`, options);
     console.log(query,values);
     const [rows] = await db.execute(query,values);
@@ -239,6 +251,10 @@ const boardController = {
   //where절 목록 
   listByWhere: async function (req) {
     const {table,id} =req.params;
+    const config = await boardController.tableConfig(table); //설정정보가져오기
+    if(isEmpty(config)){
+      throw new Error("사용중지된 게시판입니다") 
+    }
     const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`, null, {wr_id:id});
     const [rows] = await db.execute(query, values);
     return rows;
