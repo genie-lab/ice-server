@@ -17,11 +17,10 @@ const { getIp, isEmpty } = require('../../util/lib')
 
 const boardController = {
 
-  //테이블 설정정보가져오기 //서버내부용
+  //테이블 설정정보가져오기 //내부용
   tableConfig : async(table)=>{
     const cols ={ bo_table : table, bo_use : 1} ;
     const { query, values } = await sqlHelper.selectLimit(TABLE.BOARD,null,cols);
-    // console.log('query, values>>',query, values)
     const [[rows]] = await db.execute(query, values);
     return rows
   },
@@ -40,6 +39,8 @@ const boardController = {
     if(isEmpty(config)){
       throw new Error("사용중지된 게시판입니다") 
     }
+    console.log('isGrant(req, config.bo_write_level);.', config.bo_write_level)
+    console.log('isGrant(req, config.bo_write_level);',isGrant(req, config.bo_write_level))
     const grant = isGrant(req, config.bo_write_level);
     if (!grant) {
       throw new Error("작성 권한이 없습니다.")
@@ -252,12 +253,17 @@ const boardController = {
   //where절 목록 
   listByWhere: async function (req) {
     const bo_table = req.params.table;
+
     const table = `${TABLE.VIEW}${req.params.table}`;
-    const wr_id = req.params.id;
-    const member = req.user[0];
-    const conf = await boardController.tableConfig(bo_table)
-    const [[config]] = await db.execute(conf.query, conf.values);
+    const config = await boardController.tableConfig(bo_table)
     const grant = isGrant(req, config.bo_list_level);
+    console.log('config', config )
+
+    const wr_id = req.params.id;
+    const member = req.user;
+    console.log('bo_table', table,wr_id,member )
+
+    console.log('listByWhere', grant)
     if (!grant) { return res.json({ err: "목록읽기 권한이 없습니다." }); }
     
     const { query, values } = await sqlHelper.selectLimit(table, null, {wr_id});
@@ -272,12 +278,6 @@ const boardController = {
     delete row.wr_password; //비번삭제
     return row;
 
-  },
-  //테이블설정정보  //내부용
-  tableConfig: async function (cols) {
-    const { query, values } = await sqlHelper.selectLimit(TABLE.BOARD,null,cols);
-    const [rows] = await db.execute(query, values);
-    return rows;
   },
   //비멤버 토큰체크 
   tokenCheck: async function (req) {
