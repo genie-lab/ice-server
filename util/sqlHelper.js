@@ -11,7 +11,6 @@ const sqlHelper = {
   ) {
     // const query = `select * from view_bank ORDER BY 'desc' limit 0,1`;
     let query = `select * from ${table}`;
-
     if (funcs?.length > 0) {
       query = query.replace("*", funcs.join(","));
     }

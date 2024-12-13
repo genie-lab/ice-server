@@ -257,24 +257,20 @@ const boardController = {
     const table = `${TABLE.VIEW}${req.params.table}`;
     const config = await boardController.tableConfig(bo_table)
     const grant = isGrant(req, config.bo_list_level);
-    console.log('config', config )
 
     const wr_id = req.params.id;
     const member = req.user;
-    console.log('bo_table', table,wr_id,member )
 
-    console.log('listByWhere', grant)
     if (!grant) { return res.json({ err: "목록읽기 권한이 없습니다." }); }
     
     const { query, values } = await sqlHelper.selectLimit(table, null, {wr_id});
     const [[item]] = await db.execute(query, values);
     const row = item;
-    if (!rows) { return res.json({ err: "게시물이 없습니다" }) }
-    
+    if (!item) { return res.json({ err: "게시물이 없습니다" }) }
+
     await boardController.addFiles(bo_table, row);// file관련 item.wrImgs 본문내용, item.wrFiles 첨부파일
     await boardController.addGoodFlag(bo_table, row, member);// good
-    await searchController.addTags(bo_table, wr_id, row);// tags
-
+    await boardController.addTags(bo_table, row);// tags
     delete row.wr_password; //비번삭제
     return row;
 
@@ -328,10 +324,13 @@ const boardController = {
       f_fieldname:row.wr_id,
     }
     funcs=['f_id','f_originalname','f_encoding','f_mimetype','f_destination','f_filename','f_path','f_size']
-    const {query, values} = sqlHelper.selectLimit(TABLE.FILES, null, cols,funcs);
+    const {query, values} = await sqlHelper.selectLimit(TABLE.FILES, null, cols, funcs);
     const [files] = await db.execute(query, values);
     row.wrImgs = []; //본문에 첨부된 이미지
     row.wrFiles = []; //첨부파일
+    // console.log('files?.length',files?.length);
+    if(files?.length<=0) return 
+
     for (const file in files) {
       const src = file.f_originalname; //파일이름
       const idx = src.lastindexOf('.');
@@ -353,7 +352,7 @@ const boardController = {
       wr_id:row.wr_id,
     }
     funcs=['bo_tag']
-    const {query, values} = sqlHelper.selectLimit(TABLE.BOARD_TAGS, null, cols,funcs);
+    const {query, values} = await sqlHelper.selectLimit(TABLE.BOARD_TAGS, null, cols,funcs);
     const [tags] = await db.execute(query, values);
     row.wrTags=[]
     for (const tag of tags){
