@@ -8,28 +8,34 @@ const { LV, isGrant } = require("../../util/level");
 const fs = require("fs");
 const path = require("path");
 const jwt = require("../../plugins/jwt");
-const searchController = require('./searchController')
+const searchController = require("./searchController");
 const { getFlag } = require("./goodController");
 const getSummary = require("../../util/getSummary");
 const getImage = require("../../util/getImage");
-const { getIp, isEmpty } = require('../../util/lib')
-const randToken = require('rand-token')
-
+const { getIp, isEmpty } = require("../../util/lib");
+const randToken = require("rand-token");
 
 const boardController = {
-
   //테이블 설정정보가져오기 //내부용
-  tableConfig : async(table)=>{
-    const cols ={ bo_table : table, bo_use : 1} ;
-    const { query, values } = await sqlHelper.selectLimit(TABLE.BOARD,null,cols);
+  tableConfig: async (table) => {
+    const cols = { bo_table: table, bo_use: 1 };
+    const { query, values } = await sqlHelper.selectLimit(
+      TABLE.BOARD,
+      null,
+      cols
+    );
     const [[rows]] = await db.execute(query, values);
-    return rows
+    return rows;
   },
 
   //전체 카테고리들 get
   menuList: async function (req) {
     const cols = req.body;
-    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,null,cols);
+    const { query, values } = await sqlHelper.selectLimit(
+      `${TABLE.WRITE}${table}`,
+      null,
+      cols
+    );
     const [rows] = await db.execute(query, values);
     return rows;
   },
@@ -37,14 +43,17 @@ const boardController = {
   add: async (req) => {
     const { table } = req.params;
     const config = await boardController.tableConfig(table); //설정정보가져오기
-    if(isEmpty(config)){
-      throw new Error("사용중지된 게시판입니다")
+    if (isEmpty(config)) {
+      throw new Error("사용중지된 게시판입니다");
     }
-    console.log('isGrant(req, config.bo_write_level);.', config.bo_write_level)
-    console.log('isGrant(req, config.bo_write_level);',isGrant(req, config.bo_write_level))
+    console.log("isGrant(req, config.bo_write_level);.", config.bo_write_level);
+    console.log(
+      "isGrant(req, config.bo_write_level);",
+      isGrant(req, config.bo_write_level)
+    );
     const grant = isGrant(req, config.bo_write_level);
     if (!grant) {
-      throw new Error("작성 권한이 없습니다.")
+      throw new Error("작성 권한이 없습니다.");
     }
     const row = req.body;
     //디비 안들어가는 것 지우기
@@ -66,7 +75,6 @@ const boardController = {
       row.wr_grp = wr_grp ? wr_grp + 1 : 1; // 그룹 null이면 1
       row.wr_order = 0; // 순서
       row.wr_dep = 0; // 깊이
-
     } else {
       // 답글
       sql = `SELECT wr_grp, wr_order, wr_dep FROM ${TABLE.WRITE}${table} WHERE wr_id=${row.wr_parent}`;
@@ -95,12 +103,15 @@ const boardController = {
       wr_ip: ip,
     };
 
-    const { query, values } = await sqlHelper.insert(`${TABLE.WRITE}${table}`, payload);
+    const { query, values } = await sqlHelper.insert(
+      `${TABLE.WRITE}${table}`,
+      payload
+    );
     const [insertDone] = await db.execute(query, values);
     const wr_id = insertDone.insertId; // auto increment id
 
     //태그등록
-    if(wrTags?.length>0){
+    if (wrTags?.length > 0) {
       await searchController.tagAdd(table, wr_id, wrTags);
     }
 
@@ -109,8 +120,13 @@ const boardController = {
     const files = req?.files;
     if (files) {
       for (let i = 0; i < files.length; i++) {
-        files[i].originalname = Buffer.from(files[i].originalname, "ascii").toString("utf8");
-        files[i].fieldname = Buffer.from(files[i].fieldname, "ascii").toString("utf8");
+        files[i].originalname = Buffer.from(
+          files[i].originalname,
+          "ascii"
+        ).toString("utf8");
+        files[i].fieldname = Buffer.from(files[i].fieldname, "ascii").toString(
+          "utf8"
+        );
         // url만들기
         const { destination, filename } = files[i];
         const url = `${req?.protocol}://${req?.headers?.host}/${destination}${filename}`;
@@ -136,139 +152,161 @@ const boardController = {
         }
 
         //blob링크를 서버쪽링크로 교체
-        const fieldname = files[i].fieldname
-        const checkname = fieldname.split('%')[0];
+        const fieldname = files[i].fieldname;
+        const checkname = fieldname.split("%")[0];
         //첨부파일 아닌 본문에 있을때만 교체
         if (url && wr_content.indexOf(checkname) > -1) {
-          wr_content = wr_content.replace(`${checkname}`,url);
+          wr_content = wr_content.replace(`${checkname}`, url);
         }
-
       }
       //이미지 링크교체된것 최종 게시판테이블 업데이트
-      const updateQuery = await sqlHelper.edit(`${TABLE.WRITE}${table}`, {wr_content}, { wr_id });
+      const updateQuery = await sqlHelper.edit(
+        `${TABLE.WRITE}${table}`,
+        { wr_content },
+        { wr_id }
+      );
       await db.execute(updateQuery.query, updateQuery.values);
     }
     // 게시물 아이디
     return wr_id;
   },
   //게시글 수정
-  edit: async function (req,res) {
+  edit: async function (req, res) {
 
-      const param = req.params;
-      const row = req.body;
-      const table = `${TABLE.WRITE}${param.table}`;
-      let { wr_id } = row;
+    const param = req.params;
+    const row = req.body;
 
-      const {token} = row
-      
-      console.log('req.session.token',req.session.token)
-      console.log('token',token)
-      if(!req?.user && !token) return
+    const table = `${TABLE.WRITE}${param.table}`;
+    let { wr_id } = row;
+    const { token } = row;
 
-      // 콘텐츠 첨부파일 삭제 처리
-      const wrFiles = JSON.parse(row.wrFiles); // 배열 파스
-      delete row.wrFiles;
-
-      //첨부파일 wrFiles 삭제하고 DB 업데이트
-      if (wrFiles.length > 0) {
-        for (const wrFile of wrFiles) {
-          if (wrFile.remove) {
-            await boardController.removeFile(bo_table, wrFile);
-          }
-        }
-      }
-      //예전 본문 삽입이미지 삭제하고 DB 업데이트
-      const wrImgs = JSON.parse(row.wrImgs);
-      delete row.wrImgs;
-      if (wrImgs.length > 0) {
-        for (let i = 0; i < wrImgs.length; i++) {
-          //새로업데이트된 내용에 포함되지않았을때  //"bf_src":"IJ4z1717671828775.jpg"
-          if (row.wr_content.indexOf(wrImgs[i].f_filename) <= -1) {
-            //파일지우기만함
-            await boardController.removeFile(bo_table, wrImgs[i]);
-          }
-        }
-      }
-      //파일추가
-      let wr_content = row.wr_content;
-      const files = req?.files;
-      if (files) {
-        for (let i = 0; i < files.length; i++) {
-          files[i].originalname = Buffer.from(files[i].originalname, "ascii").toString("utf8");
-          files[i].fieldname = Buffer.from(files[i].fieldname, "ascii").toString("utf8");
-          // url만들기
-          const { destination, filename } = files[i];
-          const url = `${req?.protocol}://${req?.headers?.host}/${destination}${filename}`;
-
-          if (insertDone?.affectedRows == 1) {
-            //files에 저장하기
-            const filePayload = {
-              f_field: `${TABLE.WRITE}${table}`,
-              f_fieldname: insertDone.insertId,
-              f_originalname: files[i].originalname,
-              f_encoding: files[i].encoding,
-              f_mimetype: files[i].mimetype,
-              f_destination: files[i].destination,
-              f_filename: files[i].filename,
-              f_path: files[i].path,
-              f_size: files[i].size,
-            };
-            const { query, values } = await sqlHelper.insert(
-              TABLE.FILES,
-              filePayload
-            );
-            await db.execute(query, values);
-          }
-
-          //blob링크를 서버쪽링크로 교체
-          const fieldname = files[i].fieldname
-          const checkname = fieldname.split('%')[0];
-          //첨부파일 아닌 본문에 있을때만 교체
-          if (url && wr_content.indexOf(checkname) > -1) {
-            wr_content = wr_content.replace(`${checkname}`,url);
-          }
-
-        }
-        //이미지 링크교체된것 최종 게시판테이블 업데이트
-        const updateQuery = await sqlHelper.edit(`${TABLE.WRITE}${table}`, {wr_content}, { wr_id });
-        await db.execute(updateQuery.query, updateQuery.values);
-      }
-      delete row.wr_create_at;
-      delete row.wr_password;
-      row.wr_update_at = moment().format("YYYY-MM-DD HH:mm:ss");
-      row.wr_summary = getSummary(row.wr_content, 250);
-
-      /* VIEW 필드 삭제 */
-      delete row.good;
-      delete row.bad;
-      delete row.replys;
-      delete row.goodFlag;
-
-      // 태그 등록
-      const wrTags = row.wrTags;
-      delete row.wrTags;
-      //기존 글번호 태그 모두지우고 새로 인서트
-      await searchController.registerTags(bo_table, wr_id, wrTags);
-      // console.log("wrTags");
-
-      //내용 수정
-      //이미지 링크교체된것 최종 게시판테이블 업데이트
-      row.wr_content = wr_content;
-
-      const sql = sqlHelper.edit(`${TABLE.WRITE}${table}`, row, { wr_id });
-      const [rows] = await db.execute(sql.query, sql.values);
-
-      if (rows.affectedRows == 1) {
-        return wr_id;
+    let msg = "";
+    //req.user가 있을때
+    if (req?.user) {
+      msg = "";
+    } else {
+      //없을때
+      if (req.session.checkToken == token) {
+        msg = "";
+        delete row.token
       } else {
-        return false
+        msg = "토큰이 없습니다";
       }
+      row.mb_id = 0;
+    }
+
+    // 콘텐츠 첨부파일 삭제 처리
+    const wrFiles = JSON.parse(row.wrFiles); // 배열 파스
+    delete row.wrFiles;
+
+    //첨부파일 wrFiles 삭제하고 DB 업데이트
+    if (wrFiles.length > 0) {
+      for (const wrFile of wrFiles) {
+        if (wrFile.remove) {
+          await boardController.removeFile(param.table, wrFile);
+        }
+      }
+    }
+    //예전 본문 삽입이미지 삭제하고 DB 업데이트
+    const wrImgs = JSON.parse(row.wrImgs);
+    delete row.wrImgs;
+    if (wrImgs.length > 0) {
+      for (let i = 0; i < wrImgs.length; i++) {
+        //새로업데이트된 내용에 포함되지않았을때  //"bf_src":"IJ4z1717671828775.jpg"
+        if (row.wr_content.indexOf(wrImgs[i].f_filename) <= -1) {
+          //파일지우기만함
+          await boardController.removeFile(param.table, wrImgs[i]);
+        }
+      }
+    }
+    //파일추가
+    let wr_content = row.wr_content;
+    const files = req?.files;
+    if (files) {
+      for (let i = 0; i < files.length; i++) {
+        files[i].originalname = Buffer.from(
+          files[i].originalname,
+          "ascii"
+        ).toString("utf8");
+        files[i].fieldname = Buffer.from(files[i].fieldname, "ascii").toString(
+          "utf8"
+        );
+        // url만들기
+        const { destination, filename } = files[i];
+        const url = `${req?.protocol}://${req?.headers?.host}/${destination}${filename}`;
+
+        if (insertDone?.affectedRows == 1) {
+          //files에 저장하기
+          const filePayload = {
+            f_field: `${TABLE.WRITE}${table}`,
+            f_fieldname: insertDone.insertId,
+            f_originalname: files[i].originalname,
+            f_encoding: files[i].encoding,
+            f_mimetype: files[i].mimetype,
+            f_destination: files[i].destination,
+            f_filename: files[i].filename,
+            f_path: files[i].path,
+            f_size: files[i].size,
+          };
+          const { query, values } = await sqlHelper.insert(
+            TABLE.FILES,
+            filePayload
+          );
+          await db.execute(query, values);
+        }
+
+        //blob링크를 서버쪽링크로 교체
+        const fieldname = files[i].fieldname;
+        const checkname = fieldname.split("%")[0];
+        //첨부파일 아닌 본문에 있을때만 교체
+        if (url && wr_content.indexOf(checkname) > -1) {
+          wr_content = wr_content.replace(`${checkname}`, url);
+        }
+      }
+      //이미지 링크교체된것 최종 게시판테이블 업데이트
+      const updateQuery = await sqlHelper.edit(
+        table,
+        { wr_content },
+        { wr_id }
+      );
+      await db.execute(updateQuery.query, updateQuery.values);
+    }
+    delete row.wr_create_at;
+    delete row.wr_password;
+    row.wr_update_at = moment().format("YYYY-MM-DD HH:mm:ss");
+    row.wr_summary = getSummary(row.wr_content, 250);
+
+    /* VIEW 필드 삭제 */
+    delete row.good;
+    delete row.bad;
+    delete row.replys;
+    delete row.goodFlag;
+
+    // 태그 등록
+    const wrTags = row.wrTags;
+    delete row.wrTags;
+
+    //기존 글번호 태그 모두지우고 새로 인서트
+    await searchController.tagAdd(param?.table, wr_id, wrTags);
+
+    //내용 수정
+    //이미지 링크교체된것 최종 게시판테이블 업데이트
+    row.wr_content = wr_content;
+
+    const sql = await sqlHelper.edit(table, row, { wr_id });
+    const [rows] = await db.execute(sql.query, sql.values);
+
+    if (rows.affectedRows == 1) {
+      return wr_id;
+    } else {
+      return false;
+    }
   },
   //수정시 게시글 삭제 //내부용
-  async removeFile(bo_table, file) {
+  async removeFile(table, file) {
     const { f_id, f_filename } = file;
-    const filePath = `${UPLOAD_PATH}/${bo_table}/${f_filename}`; //upload/test/ahSx1733907080383.jpg
-    const cachePath = `${UPLOAD_PATH}/${bo_table}/.cache`; // 섬네일
+    const filePath = `${UPLOAD_PATH}/${table}/${f_filename}`; //upload/test/ahSx1733907080383.jpg
+    const cachePath = `${UPLOAD_PATH}/${table}/.cache`; // 섬네일
 
     // 파일삭제
     if (fs.existsSync(filePath)) {
@@ -320,7 +358,7 @@ const boardController = {
     //   return res.json({ err: modifyMsg });
     // }
     const { id } = req.params;
-    const {  token } = req.body;
+    const { token } = req.body;
     const table = `${TABLE.WRITE}${req.params?.table}`;
     let delCnt = 0;
     // 자식글이 있는지 확인
@@ -334,11 +372,7 @@ const boardController = {
     // 최고 관리자 이면 모두 삭제함
     if (member && member.mb_level >= LV.SUPER) {
       for (const child of children) {
-        delCnt += await boardController.del(
-          bo_table,
-          child.wr_id,
-          member
-        );
+        delCnt += await boardController.del(bo_table, child.wr_id, member);
       }
       delCnt += await boardController.removeItem(bo_table, wr_id);
     } else {
@@ -374,10 +408,12 @@ const boardController = {
   listCount: async function (req) {
     const { table } = req.params;
     const config = await boardController.tableConfig(table); //설정정보가져오기
-    if(isEmpty(config)){
-      throw new Error("사용중지된 게시판입니다")
+    if (isEmpty(config)) {
+      throw new Error("사용중지된 게시판입니다");
     }
-    const {query} = await sqlHelper.selectSimpleCount(`${TABLE.WRITE}${table}`);
+    const { query } = await sqlHelper.selectSimpleCount(
+      `${TABLE.WRITE}${table}`
+    );
     const [[{ rowsCount }]] = await db.execute(query);
     return rowsCount;
   },
@@ -385,20 +421,24 @@ const boardController = {
   listByWhereCount: async function (req) {
     const { table, id } = req.params;
     const config = await boardController.tableConfig(table); //설정정보가져오기
-    if(isEmpty(config)){
-      throw new Error("사용중지된 게시판입니다")
+    if (isEmpty(config)) {
+      throw new Error("사용중지된 게시판입니다");
     }
-    const {query,values} = await sqlHelper.selectSimpleCount(`${TABLE.WRITE}${table}`,null,{wr_name:id});
-    const [[{ rowsCount }]] = await db.execute(query,values);
+    const { query, values } = await sqlHelper.selectSimpleCount(
+      `${TABLE.WRITE}${table}`,
+      null,
+      { wr_name: id }
+    );
+    const [[{ rowsCount }]] = await db.execute(query, values);
     return rowsCount;
   },
   //페이지 목록
   list: async function (req) {
     // search
     const options = req.query;
-    const table =`${TABLE.WRITE}${req.params.table}`
-    const wr_name = options?.writer ? {wr_name : options?.writer } : null
-    delete options?.writer
+    const table = `${TABLE.WRITE}${req.params.table}`;
+    const wr_name = options?.writer ? { wr_name: options?.writer } : null;
+    delete options?.writer;
 
     if (options?.search) {
       const colnameSql = await sqlHelper.colnames(table);
@@ -407,12 +447,21 @@ const boardController = {
         return c.COLUMN_NAME;
       });
       const { query, values } = await sqlHelper.selectLimit(
-        `${TABLE.VIEW}${req.params.table}`, options, wr_name, null, searchCols );
+        `${TABLE.VIEW}${req.params.table}`,
+        options,
+        wr_name,
+        null,
+        searchCols
+      );
       const [rows] = await db.execute(query, values);
       return rows;
     } else {
-      const { query, values } = await sqlHelper.selectLimit(`${TABLE.VIEW}${req.params.table}`, options, wr_name);
-      const [rows] = await db.execute(query,values);
+      const { query, values } = await sqlHelper.selectLimit(
+        `${TABLE.VIEW}${req.params.table}`,
+        options,
+        wr_name
+      );
+      const [rows] = await db.execute(query, values);
       return rows;
     }
   },
@@ -420,59 +469,70 @@ const boardController = {
   listByWhere: async function (req) {
     const bo_table = req.params.table;
     const table = `${TABLE.VIEW}${req.params.table}`;
-    const config = await boardController.tableConfig(bo_table)
+    const config = await boardController.tableConfig(bo_table);
     const grant = isGrant(req, config.bo_list_level);
-    if (!grant) { return res.json({ err: "목록읽기 권한이 없습니다." }); }
-    const { cols } = req.body
+    if (!grant) {
+      return res.json({ err: "목록읽기 권한이 없습니다." });
+    }
+    const { cols } = req.body;
     const member = req.user ? req.user : null;
     const { query, values } = await sqlHelper.selectLimit(table, null, cols);
     const [items] = await db.execute(query, values);
     const rows = items;
-    if (rows?.length<=0) { return res.json({ err: "게시물이 없습니다" }) }
+    if (rows?.length <= 0) {
+      return res.json({ err: "게시물이 없습니다" });
+    }
 
-    for(const r in rows){
-      await boardController.addFiles(bo_table, rows[r]);// file관련 item.wrImgs 본문내용, item.wrFiles 첨부파일
-      await boardController.addGoodFlag(bo_table, rows[r], member);// good
-      await boardController.addTags(bo_table, rows[r]);// tags
+    for (const r in rows) {
+      await boardController.addFiles(bo_table, rows[r]); // file관련 item.wrImgs 본문내용, item.wrFiles 첨부파일
+      await boardController.addGoodFlag(bo_table, rows[r], member); // good
+      await boardController.addTags(bo_table, rows[r]); // tags
       delete rows[r].wr_password; //비번삭제
     }
     // console.log('query, , row',rows);
     return rows;
   },
   //비멤버 토큰제공
-  tokenCheck: async function (req,res) {
-    const {table, id, pw} =req.body;
+  tokenCheck: async function (req, res) {
+    const { table, id, pw } = req.body;
     //비번바꿔야해
     const wr_password = await jwt.generatePassword(pw);
 
-    const cols={
-      wr_id:id,
+    const cols = {
+      wr_id: id,
       wr_password,
-    }
-    const { query, values } = await sqlHelper.selectSimpleCount(`${TABLE.WRITE}${table}`,null,cols);
+    };
+    const { query, values } = await sqlHelper.selectSimpleCount(
+      `${TABLE.WRITE}${table}`,
+      null,
+      cols
+    );
 
-    const [[{rowsCount}]] = await db.execute(query, values);
+    const [[{ rowsCount }]] = await db.execute(query, values);
 
-    if(rowsCount>=1){
+    if (rowsCount >= 1) {
       // 토큰 만들어주기
       const token = randToken.generate(16);
-      req.session['checkToken']=token
-      console.log('req.session,checkToken',req.session.checkToken)
-      return token
+      req.session["checkToken"] = token;
+      console.log("req.session,checkToken", req.session.checkToken);
+      return token;
     }
     return "";
   },
   //최근 게시물 가져오기
   latest: async function (req) {
-    const {table, limit} =req.body;
+    const { table, limit } = req.body;
     const config = await boardController.tableConfig(table); //설정정보가져오기
-    if(isEmpty(config)){
-      throw new Error("사용중지된 게시판입니다")
+    if (isEmpty(config)) {
+      throw new Error("사용중지된 게시판입니다");
     }
     const sql = sqlHelper.selectLimit(table, null, { wr_reply: 0 }); // 부모글
-    const manyReplys = sql.query + ` ORDER BY replys DESC, wr_update_at DESC LIMIT ${limit}`; // 댓글 수
-    const manyViews = sql.query + ` ORDER BY wr_view DESC, wr_update_at DESC LIMIT ${limit}`; // 본 수
-    const manyGoods = sql.query + ` ORDER BY good DESC, wr_update_at DESC LIMIT ${limit}`; // 좋아요
+    const manyReplys =
+      sql.query + ` ORDER BY replys DESC, wr_update_at DESC LIMIT ${limit}`; // 댓글 수
+    const manyViews =
+      sql.query + ` ORDER BY wr_view DESC, wr_update_at DESC LIMIT ${limit}`; // 본 수
+    const manyGoods =
+      sql.query + ` ORDER BY good DESC, wr_update_at DESC LIMIT ${limit}`; // 좋아요
     sql.query += ` ORDER BY wr_update_at DESC LIMIT ${limit}`; // 부모글
 
     const [rows] = await db.execute(sql.query, sql.values); // 부모글
@@ -494,27 +554,41 @@ const boardController = {
       await searchController.addTags(table, row); // tags
       row.thumb = getImage(config, row);
     }
-    return { title:config.bo_title, rows, replys, views, goods }; //게시판이름, 부모글5,답글5,조회수5,좋아요5
+    return { title: config.bo_title, rows, replys, views, goods }; //게시판이름, 부모글5,답글5,조회수5,좋아요5
   },
   //최근 게시물 가져오기에 파일 붙이기 //내부용
-  addFiles : async function(table, row){
+  addFiles: async function (table, row) {
     //파일테이블내역 불러오기
-    cols={
-      f_field:table,
-      f_fieldname:row.wr_id,
-    }
-    funcs=['f_id','f_originalname','f_encoding','f_mimetype','f_destination','f_filename','f_path','f_size']
-    const {query, values} = await sqlHelper.selectLimit(TABLE.FILES, null, cols, funcs);
+    cols = {
+      f_field: table,
+      f_fieldname: row.wr_id,
+    };
+    funcs = [
+      "f_id",
+      "f_originalname",
+      "f_encoding",
+      "f_mimetype",
+      "f_destination",
+      "f_filename",
+      "f_path",
+      "f_size",
+    ];
+    const { query, values } = await sqlHelper.selectLimit(
+      TABLE.FILES,
+      null,
+      cols,
+      funcs
+    );
     const [files] = await db.execute(query, values);
     row.wrImgs = []; //본문에 첨부된 이미지
     row.wrFiles = []; //첨부파일
     // console.log('files?.length',files?.length);
-    if(files?.length<=0) return
+    if (files?.length <= 0) return;
 
     for (const file in files) {
       const src = file.f_originalname; //파일이름
-      const idx = src.lastindexOf('.');
-      const filename =src.substring(0,idx+1)
+      const idx = src.lastindexOf(".");
+      const filename = src.substring(0, idx + 1);
       if (row.wr_content.indexOf(filename) < 0) {
         //없으면 첨부파일
         file.remove = false;
@@ -525,26 +599,31 @@ const boardController = {
     }
   },
   //최근게시물에 태그붙이기 //내부용
-  addTags: async function (table, row){
+  addTags: async function (table, row) {
     //태그테이블내역 불러오기
-    cols={
-      bo_tag:table,
-      wr_id:row.wr_id,
-    }
-    funcs=['bo_tag']
-    const {query, values} = await sqlHelper.selectLimit(TABLE.BOARD_TAGS, null, cols,funcs);
+    cols = {
+      bo_tag: table,
+      wr_id: row.wr_id,
+    };
+    funcs = ["bo_tag"];
+    const { query, values } = await sqlHelper.selectLimit(
+      TABLE.BOARD_TAGS,
+      null,
+      cols,
+      funcs
+    );
     const [tags] = await db.execute(query, values);
-    row.wrTags=[]
-    for (const tag of tags){
-      row.wrTags.push(tag.bo_tag)
+    row.wrTags = [];
+    for (const tag of tags) {
+      row.wrTags.push(tag.bo_tag);
     }
   },
   //좋아요 붙이기 //내부용
-  addGoodFlag: async function (table,row,member=null){
-    if(member){
-      row.goodFlag = await getFlag(table,row,member) //goodController에서
-    }else{
-      row.goodFlag = 0
+  addGoodFlag: async function (table, row, member = null) {
+    if (member) {
+      row.goodFlag = await getFlag(table, row, member); //goodController에서
+    } else {
+      row.goodFlag = 0;
     }
   },
   //게시물 관련 목록을 가져옴 // 이전글/다음글/관련글
@@ -552,95 +631,138 @@ const boardController = {
     const bo_table = req.params.table;
     const wr_grp = Number(req.params.wrGrp);
     const table = `${TABLE.VIEW}${req.params.table}`;
-    const config = await boardController.tableConfig(bo_table)
+    const config = await boardController.tableConfig(bo_table);
     const grant = isGrant(req, config.bo_list_level);
-    if (!grant) { return res.json({ err: "목록읽기 권한이 없습니다." }); }
+    if (!grant) {
+      return res.json({ err: "목록읽기 권한이 없습니다." });
+    }
 
-    const prev = await sqlHelper.selectLimit(table,{wr_reply:0},{wr_grp:wr_grp-1})
-    const [[prevResult]] = await db.execute(prev.query,prev.values)
-    const next = await sqlHelper.selectLimit(table,{wr_reply:0},{wr_grp:wr_grp+1})
-    const [[nextResult]] = await db.execute(next.query,next.values)
-    const info={
+    const prev = await sqlHelper.selectLimit(
+      table,
+      { wr_reply: 0 },
+      { wr_grp: wr_grp - 1 }
+    );
+    const [[prevResult]] = await db.execute(prev.query, prev.values);
+    const next = await sqlHelper.selectLimit(
+      table,
+      { wr_reply: 0 },
+      { wr_grp: wr_grp + 1 }
+    );
+    const [[nextResult]] = await db.execute(next.query, next.values);
+    const info = {
       prev: prevResult ? prevResult : null,
       next: nextResult ? nextResult : null,
-    }
+    };
     // console.log('info', info);
-    return info
+    return info;
   },
   //작성자글 모아보기
-  listByWrName: async function (req){
+  listByWrName: async function (req) {
     const bo_table = req.params.table;
     const wr_name = req.params.wrName;
     const table = `${TABLE.VIEW}${req.params.table}`;
-    const config = await boardController.tableConfig(bo_table)
+    const config = await boardController.tableConfig(bo_table);
     const grant = isGrant(req, config.bo_list_level);
-    if (!grant) { return res.json({ err: "목록읽기 권한이 없습니다." }); }
+    if (!grant) {
+      return res.json({ err: "목록읽기 권한이 없습니다." });
+    }
 
-    const {query,values} = await sqlHelper.selectLimit(table,{wr_reply:0},{wr_name:'tes'})
-    console.log(query,values);
-    const [result] = db.execute(query,values)
-    return result
+    const { query, values } = await sqlHelper.selectLimit(
+      table,
+      { wr_reply: 0 },
+      { wr_name: "tes" }
+    );
+    console.log(query, values);
+    const [result] = db.execute(query, values);
+    return result;
   },
   //조회수 증가
   viewUp: async function (req) {
-    const cols ={ ...req.body} ;
-    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const cols = { ...req.body };
+    const { query, values } = await sqlHelper.selectLimit(
+      `${TABLE.WRITE}${table}`,
+      cols
+    );
     const [rows] = await db.execute(query, values);
     return rows;
   },
   //댓글목록
   commentList: async function (req) {
-    const cols ={ ...req.body} ;
-    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const cols = { ...req.body };
+    const { query, values } = await sqlHelper.selectLimit(
+      `${TABLE.WRITE}${table}`,
+      cols
+    );
     const [rows] = await db.execute(query, values);
     return rows;
   },
   //댓글추가
   commentAdd: async function (req) {
-    const cols ={ ...req.body} ;
-    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const cols = { ...req.body };
+    const { query, values } = await sqlHelper.selectLimit(
+      `${TABLE.WRITE}${table}`,
+      cols
+    );
     const [rows] = await db.execute(query, values);
     return rows;
   },
   //댓글수정
   commentEdit: async function (req) {
-    const cols ={ ...req.body} ;
-    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const cols = { ...req.body };
+    const { query, values } = await sqlHelper.selectLimit(
+      `${TABLE.WRITE}${table}`,
+      cols
+    );
     const [rows] = await db.execute(query, values);
     return rows;
   },
   //댓글삭제
   commentDel: async function (req) {
-    const cols ={ ...req.body} ;
-    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const cols = { ...req.body };
+    const { query, values } = await sqlHelper.selectLimit(
+      `${TABLE.WRITE}${table}`,
+      cols
+    );
     const [rows] = await db.execute(query, values);
     return rows;
   },
   //답글추가
   replyAdd: async function (req) {
-    const cols ={ ...req.body} ;
-    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const cols = { ...req.body };
+    const { query, values } = await sqlHelper.selectLimit(
+      `${TABLE.WRITE}${table}`,
+      cols
+    );
     const [rows] = await db.execute(query, values);
     return rows;
   },
   //답글수정
   replyEdit: async function (req) {
-    const cols ={ ...req.body} ;
-    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const cols = { ...req.body };
+    const { query, values } = await sqlHelper.selectLimit(
+      `${TABLE.WRITE}${table}`,
+      cols
+    );
     const [rows] = await db.execute(query, values);
     return rows;
   },
   //답글삭제
   replyDel: async function (req) {
-    const cols ={ ...req.body} ;
-    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const cols = { ...req.body };
+    const { query, values } = await sqlHelper.selectLimit(
+      `${TABLE.WRITE}${table}`,
+      cols
+    );
     const [rows] = await db.execute(query, values);
     return rows;
   },
   //파일다운로드
   download: async function (req) {
-    const cols ={ ...req.body} ;
-    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,cols);
+    const cols = { ...req.body };
+    const { query, values } = await sqlHelper.selectLimit(
+      `${TABLE.WRITE}${table}`,
+      cols
+    );
     const [rows] = await db.execute(query, values);
     return rows;
   },
