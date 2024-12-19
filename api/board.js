@@ -22,7 +22,7 @@ router.put("/:table/:id/edit", upload().any(), async (req, res) => {
   res.json(result);
 });
 //게시글 삭제
-router.put("/:table/:id/:token", async (req, res) => {
+router.put("/:table/:id/del", async (req, res) => {
   const result = await modelCall(boardController.del, req, res);
   res.json(result);
 });
@@ -31,6 +31,11 @@ router.put("/:table/:id/:token", async (req, res) => {
 //전체목록수
 router.get("/:table/listCount", async (req, res) => {
   const result = await modelCall(boardController.listCount, req, res);
+  res.json(result);
+});
+//특정조건 전체목록수
+router.get("/:table/:id/listByWhereCount", async (req, res) => {
+  const result = await modelCall(boardController.listByWhereCount, req, res);
   res.json(result);
 });
 //페이지 목록
@@ -56,8 +61,13 @@ router.get("/:table/:limit/latest", async (req,res)=>{
   res.json(result)
 })
 //게시물 관련 목록을 가져옴 // 이전글/다음글/관련글
-router.get("/:table/:wrGrp/listInfo", async (req,res)=>{
-  const result = await modelCall(boardController.listInfo, req, res);
+router.get("/:table/:wrGrp/listPrevNext", async (req,res)=>{
+  const result = await modelCall(boardController.listPrevNext, req, res);
+  res.json(result)
+})
+//작성자글 모아보기
+router.get("/:table/:wrName/listByWrName", async (req,res)=>{
+  const result = await modelCall(boardController.listByWrName, req, res);
   res.json(result)
 })
 //조회수 증가

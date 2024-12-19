@@ -32,7 +32,7 @@ CREATE TABLE write_{{table}} (
 		index (wr_reply, wr_grp, wr_order, wr_parent)
 );
 CREATE view view_{{table}} AS
-SELECT wr_id, wr_reply, wr_grp, wr_order, wr_dep, wr_parent, mb_id, wr_email, wr_name, wr_password, wr_category, wr_title, wr_summary, wr_content, wr_view, wr_ip, wr_create_at, wr_update_at,
+SELECT wr_id, wr_reply, wr_grp, wr_order, wr_dep, wr_parent, mb_id, wr_email, wr_name, wr_use, wr_password, wr_category, wr_title, wr_summary, wr_content, wr_view, wr_ip, wr_create_at, wr_update_at,
 		wr_1,wr_2,wr_3,wr_4,wr_5,wr_6,wr_7,wr_8,wr_9,wr_10,
 		(SELECT count(*) FROM board_good WHERE bo_table="{{table}}" AND wr_id=w.wr_id AND bg_flag=1) AS good,
 		(SELECT count(*) FROM board_good WHERE bo_table="{{table}}" AND wr_id=w.wr_id AND bg_flag=2) AS bad,

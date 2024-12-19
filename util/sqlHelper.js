@@ -54,6 +54,16 @@ const sqlHelper = {
 
     if (cols) {
       for (c in cols) {
+        switch (typeof cols[c]) {
+          case "number":
+            cols[c] = cols[c] ? Number(cols[c]) : cols[c];
+            break;
+          case "boolean":
+            cols[c] = cols[c] ? cols[c] == "true" : cols[c];
+            break;
+          default:
+            cols[c] = cols[c] || cols[c];
+        }
         key.push(c + "=?");
         values.push(cols[c]);
       }
@@ -65,8 +75,9 @@ const sqlHelper = {
     return { query, values };
   },
   //함수만들기 cols는 where절도 같이 들어감
-  selectSimpleCount: async function (table, options = {}, searchCols = []) {
+  selectSimpleCount: async function (table, options = {},cols=null, searchCols = []) {
     // const query = `select * from ${table}`;
+
     let search = "";
     //서치
     if (options?.search) {
@@ -81,9 +92,34 @@ const sqlHelper = {
       search = ` WHERE ${search} `;
       // //서치할때는 전체페이지에서 찾기
     }
-    const query = `select count(*) AS rowsCount from ${table} ${search}`;
 
-    return query;
+    //where
+    let key = [];
+    let values = [];
+
+    if (cols) {
+      for (c in cols) {
+        switch (typeof cols[c]) {
+          case "number":
+            cols[c] = cols[c] ? Number(cols[c]) : cols[c];
+            break;
+          case "boolean":
+            cols[c] = cols[c] ? cols[c] == "true" : cols[c];
+            break;
+          default:
+            cols[c] = cols[c] || cols[c];
+        }
+        key.push(c + "=?");
+        values.push(cols[c]);
+      }
+      key = key.join(" and ");
+      key = `WHERE ${key} `;
+      key = search ? null : key;
+    }
+
+    const query = `select count(*) AS rowsCount from ${table} ${search} ${key}`;
+
+    return {query,values};
   },
   //추가
   insert: async function (table, payload) {
