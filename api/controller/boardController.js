@@ -7,7 +7,6 @@ const moment = require("../../util/moment");
 const { LV, isGrant } = require("../../util/level");
 const fs = require("fs");
 const path = require("path");
-const { generatePassword } = require("../../plugins/jwt");
 const jwt = require("../../plugins/jwt");
 const searchController = require('./searchController')
 const { getFlag } = require("./goodController");
@@ -82,7 +81,7 @@ const boardController = {
 
     //password 암호화
     if (row.wr_password) {
-      row.wr_password = await generatePassword(row.wr_password);
+      row.wr_password = await jwt.generatePassword(row.wr_password);
     }
 
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
@@ -160,7 +159,10 @@ const boardController = {
       const table = `${TABLE.WRITE}${param.table}`;
       let { wr_id } = row;
 
-      const {token} = row.token
+      const {token} = row
+      
+      console.log('req.session.token',req.session.token)
+      console.log('token',token)
       if(!req?.user && !token) return
 
       // 콘텐츠 첨부파일 삭제 처리
@@ -440,20 +442,25 @@ const boardController = {
   //비멤버 토큰제공
   tokenCheck: async function (req,res) {
     const {table, id, pw} =req.body;
-    const wr_password = generatePassword(pw);
+    //비번바꿔야해
+    const wr_password = await jwt.generatePassword(pw);
+
     const cols={
       wr_id:id,
       wr_password,
     }
     const { query, values } = await sqlHelper.selectSimpleCount(`${TABLE.WRITE}${table}`,null,cols);
+
     const [[{rowsCount}]] = await db.execute(query, values);
+
     if(rowsCount>=1){
       // 토큰 만들어주기
       const token = randToken.generate(16);
-      req.session.checkToken = token;
+      req.session['checkToken']=token
+      console.log('req.session,checkToken',req.session.checkToken)
       return token
     }
-    return res.json({ err: "비밀번호가 올바르지 않습니다" });
+    return "";
   },
   //최근 게시물 가져오기
   latest: async function (req) {

@@ -49,6 +49,10 @@ router.post("/:table/:id/listByWhere", async (req, res) => {
   res.json(result);
 });
 //비멤버 토큰체크
+router.post("/:table/:id/tokenModiCheck", async (req, res) => {
+  const result = await modelCall(boardController.tokenCheck, req, res);
+  res.json(result);
+});
 router.post("/:table/:id/tokenCheck", async (req, res) => {
   const result = await modelCall(boardController.tokenCheck, req, res);
   res.json(result);
