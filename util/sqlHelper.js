@@ -118,7 +118,6 @@ const sqlHelper = {
     }
 
     const query = `select count(*) AS rowsCount from ${table} ${search} ${key}`;
-
     return {query,values};
   },
   //추가

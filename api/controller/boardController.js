@@ -464,17 +464,9 @@ const boardController = {
     const cols = {
       wr_use: 1,
     };
-    console.log('cols',cols)
 
-    const { query } = await sqlHelper.selectSimpleCount(
-      `${TABLE.WRITE}${table}`,
-      null,
-      cols
-    );
-    console.log('query',query)
-
-    const [[{ rowsCount }]] = await db.execute(query);
-    console.log('query',rowsCount)
+    const { query, values } = await sqlHelper.selectSimpleCount(`${TABLE.WRITE}${table}`,cols);
+    const [[ {rowsCount} ]] = await db.execute(query, values);
 
     return rowsCount;
   },
@@ -527,7 +519,6 @@ const boardController = {
         options,
         cols
       );
-      console.log(query, values);
 
       const [rows] = await db.execute(query, values);
       return rows;
