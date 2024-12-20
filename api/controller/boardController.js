@@ -325,7 +325,6 @@ const boardController = {
   },
   //수정시 게시글 삭제 //내부용
   removeRow: async (ip, table, wr_id) => {
-
     // tag삭제
     await searchController.tagDel(table, wr_id);
 
@@ -347,9 +346,12 @@ const boardController = {
     }
 
     // 게시물이 본문글이면 댓글도 삭제
-    const sqlReply = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`, null, { wr_id }, [
-      "wr_reply",
-    ]);
+    const sqlReply = await sqlHelper.selectLimit(
+      `${TABLE.WRITE}${table}`,
+      null,
+      { wr_id },
+      ["wr_reply"]
+    );
     const [replRows] = await db.execute(sqlReply.query, sqlReply.values);
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
     // 댓글이 없을때==============> 삭제
@@ -359,16 +361,20 @@ const boardController = {
         wr_update_at: at,
         wr_ip: ip,
       };
-      const replDel = await sqlHelper.edit(`${TABLE.WRITE}${table}`,payload,{wr_reply:wr_id});
-      await db.execute(replDel.query,replDel.values);
+      const replDel = await sqlHelper.edit(`${TABLE.WRITE}${table}`, payload, {
+        wr_reply: wr_id,
+      });
+      await db.execute(replDel.query, replDel.values);
     }
     const payload = {
       wr_use: 0,
       wr_update_at: at,
       wr_ip: ip,
     };
-    const rows = await sqlHelper.edit(`${TABLE.WRITE}${table}`,payload,{wr_id});
-    const [result] = await db.execute(rows.query,rows.values);
+    const rows = await sqlHelper.edit(`${TABLE.WRITE}${table}`, payload, {
+      wr_id,
+    });
+    const [result] = await db.execute(rows.query, rows.values);
 
     return result.affectedRows;
   },
@@ -400,13 +406,15 @@ const boardController = {
     return delCnt;
   },
   // 게시글 삭제 재귀함수 //내장용
-  delRow: async (ip, table, wr_id, member=null) => {
-
+  delRow: async (ip, table, wr_id, member = null) => {
     let delCnt = 0;
     // 자식글이 있는지 확인
-    const sql = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`, null, { wr_parent: wr_id }, [
-      "wr_id",
-    ]);
+    const sql = await sqlHelper.selectLimit(
+      `${TABLE.WRITE}${table}`,
+      null,
+      { wr_parent: wr_id },
+      ["wr_id"]
+    );
     const [children] = await db.execute(sql.query, sql.values);
 
     // 최고 관리자 이면 모두 삭제함
@@ -418,14 +426,16 @@ const boardController = {
     } else {
       if (children?.length == 0) {
         // 답글이 없으면 댓글을 가져온다
-        const sql = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`, null, { wr_reply: wr_id }, [
-          "wr_id",
-        ]);
+        const sql = await sqlHelper.selectLimit(
+          `${TABLE.WRITE}${table}`,
+          null,
+          { wr_reply: wr_id },
+          ["wr_id"]
+        );
         const [replys] = await db.execute(sql.query, sql.values);
         if (replys.length == 0) {
           // 댓글이 없으면
           delCnt += await boardController.removeRow(ip, table, wr_id);
-
         } else {
           return resData(
             STATUS.E200.result, //status
@@ -450,11 +460,13 @@ const boardController = {
     if (isEmpty(config)) {
       throw new Error("사용중지된 게시판입니다");
     }
-    const cols ={
-      wr_use:1,
-    }
+    const cols = {
+      wr_use: 1,
+    };
     const { query } = await sqlHelper.selectSimpleCount(
-      `${TABLE.WRITE}${table}`, null, cols
+      `${TABLE.WRITE}${table}`,
+      null,
+      cols
     );
     const [[{ rowsCount }]] = await db.execute(query);
     return rowsCount;
@@ -480,11 +492,11 @@ const boardController = {
     const options = req.query;
     const table = `${TABLE.WRITE}${req.params.table}`;
     const wr_name = options?.writer ? { wr_name: options?.writer } : null;
-    const cols ={
+    const cols = {
       wr_name,
-      wr_use:1,
-    }
-    cols['wr_name'] == null ? delete cols.wr_name : cols['wr_name']
+      wr_use: 1,
+    };
+    cols["wr_name"] == null ? delete cols.wr_name : cols["wr_name"];
     delete options?.writer;
 
     if (options?.search) {
@@ -524,8 +536,14 @@ const boardController = {
       return res.json({ err: "목록읽기 권한이 없습니다." });
     }
     const { cols } = req.body;
+    const options = {
+      wr_order: "asc",
+      wr_grp: "desc",
+      wr_dep: 'asc',
+      ...cols,
+    };
     const member = req.user ? req.user : null;
-    const { query, values } = await sqlHelper.selectLimit(table, null, cols);
+    const { query, values } = await sqlHelper.selectLimit(table, null, options);
     const [items] = await db.execute(query, values);
     const rows = items;
     if (rows?.length <= 0) {
