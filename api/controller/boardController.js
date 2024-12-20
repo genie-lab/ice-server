@@ -534,14 +534,8 @@ const boardController = {
       return res.json({ err: "목록읽기 권한이 없습니다." });
     }
     const { cols } = req.body;
-    const options = {
-      wr_order: "asc",
-      wr_grp: "desc",
-      wr_dep: 'asc',
-      ...cols,
-    };
     const member = req.user ? req.user : null;
-    const { query, values } = await sqlHelper.selectLimit(table, null, options);
+    const { query, values } = await sqlHelper.selectLimit(table, null, cols);
     const [items] = await db.execute(query, values);
     const rows = items;
     if (rows?.length <= 0) {
