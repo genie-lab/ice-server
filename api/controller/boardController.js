@@ -457,18 +457,25 @@ const boardController = {
   listCount: async function (req) {
     const { table } = req.params;
     const config = await boardController.tableConfig(table); //설정정보가져오기
+
     if (isEmpty(config)) {
       throw new Error("사용중지된 게시판입니다");
     }
     const cols = {
       wr_use: 1,
     };
+    console.log('cols',cols)
+
     const { query } = await sqlHelper.selectSimpleCount(
       `${TABLE.WRITE}${table}`,
       null,
       cols
     );
+    console.log('query',query)
+
     const [[{ rowsCount }]] = await db.execute(query);
+    console.log('query',rowsCount)
+
     return rowsCount;
   },
   //특정조건 전체목록수
