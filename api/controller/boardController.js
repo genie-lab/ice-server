@@ -742,23 +742,53 @@ const boardController = {
   },
   //댓글목록
   commentList: async function (req) {
-    const cols = { ...req.body };
-    const { query, values } = await sqlHelper.selectLimit(
-      `${TABLE.WRITE}${table}`,
-      cols
-    );
-    const [rows] = await db.execute(query, values);
-    return rows;
+    // SELECT * FROM lion.write_test where wr_reply=1 order by wr_grp desc;
+    const {currOpt,goodOpt,cols,table} = req.body
+    // 최신순
+    const curr = await sqlHelper.selectLimit(
+      `${TABLE.VIEW}${table}`,currOpt,cols);
+    const [currRows] = await db.execute(curr.query, curr.values);
+    const rowsCount = currRows?.length
+    // 좋아요순
+    const good = await sqlHelper.selectLimit(
+      `${TABLE.VIEW}${table}`,goodOpt,cols);
+    const [goodRows] = await db.execute(good.query, good.values);
+
+    if (rowsCount <= 0) {
+      return { err: "게시물이 없습니다" };
+    }
+
+    // 최신순 시간순 // 공감순 좋아요 많은 것 // 전체 갯수
+    return {currRows,goodRows,rowsCount};
   },
   //댓글추가
   commentAdd: async function (req) {
-    const cols = { ...req.body };
-    const { query, values } = await sqlHelper.selectLimit(
+    const {table, form, id} = req.body;
+    const at = moment().format("YYYY-MM-DD HH:mm:ss");
+    const ip = getIp(req);
+
+    const reply=await sqlHelper.selectLimit( `${TABLE.VIEW}${table}`,{
+      sortBy: ["wr_order","wr_grp","wr_dep"],
+      type: ["desc","desc","desc"],
+    },{wr_reply:id})
+    const [replRows]= await db.execute(reply.query,reply.values)
+
+    const cols={
+      ...form,
+      wr_grp:replRows[0]?.wr_grp ? replRows[0]?.wr_grp+1 : 1,
+      wr_order:replRows[0]?.wr_order ? replRows[0].wr_order+1 : 1,
+      wr_dep:form.wr_parent > 0 ? replRows[0]?.wr_dep+1 : 0,
+      wr_ip:ip,
+      wr_create_at:at,
+      wr_update_at:at,
+    }
+    const { query, values } = await sqlHelper.insert(
       `${TABLE.WRITE}${table}`,
       cols
     );
-    const [rows] = await db.execute(query, values);
-    return rows;
+    const [insertDone] = await db.execute(query, values);
+    console.log(insertDone)
+    return insertDone;
   },
   //댓글수정
   commentEdit: async function (req) {

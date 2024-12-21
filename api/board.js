@@ -80,12 +80,12 @@ router.patch("/:table/:id/viewUp", async (req,res)=>{
   res.json(result)
 })
 //댓글목록
-router.post("/:table/:id/commentList", async (req,res)=>{
+router.post("/:table/commentList", async (req,res)=>{
   const result = await modelCall(boardController.commentList, req, res);
   res.json(result)
 })
 //댓글추가
-router.post("/:table/:id/commentAdd", async (req,res)=>{
+router.post("/:table/commentAdd", async (req,res)=>{
   const result = await modelCall(boardController.commentAdd, req, res);
   res.json(result)
 })
