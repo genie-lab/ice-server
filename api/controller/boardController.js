@@ -494,6 +494,7 @@ const boardController = {
     const cols = {
       wr_name,
       wr_use: 1,
+      wr_reply:0,
     };
     cols["wr_name"] == null ? delete cols.wr_name : cols["wr_name"];
     delete options?.writer;
