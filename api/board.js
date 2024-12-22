@@ -90,12 +90,12 @@ router.post("/:table/commentAdd", async (req,res)=>{
   res.json(result)
 })
 //댓글수정
-router.put("/:table/:id/commentEdit", async (req,res)=>{
+router.put("/:table/commentEdit", async (req,res)=>{
   const result = await modelCall(boardController.commentEdit, req, res);
   res.json(result)
 })
 //댓글삭제
-router.put("/:table/:id/commentDel", async (req,res)=>{
+router.put("/:table/commentDel", async (req,res)=>{
   const result = await modelCall(boardController.commentDel, req, res);
   res.json(result)
 })

@@ -748,8 +748,11 @@ const boardController = {
     // 최신순
     const curr = await sqlHelper.selectLimit(
       `${TABLE.VIEW}${table}`,currOpt,cols);
-    const [currRows] = await db.execute(curr.query, curr.values);
-    const rowsCount = currRows?.length
+      const [currRows] = await db.execute(curr.query, curr.values);
+    // 전체갯수
+    const cnt = await sqlHelper.selectSimpleCount(
+      `${TABLE.VIEW}${table}`,null,cols);
+    const [[{rowsCount}]] = await db.execute(cnt.query,cnt.values)
     // 좋아요순
     const good = await sqlHelper.selectLimit(
       `${TABLE.VIEW}${table}`,goodOpt,cols);
@@ -758,7 +761,6 @@ const boardController = {
     if (rowsCount <= 0) {
       return { err: "게시물이 없습니다" };
     }
-
     // 최신순 시간순 // 공감순 좋아요 많은 것 // 전체 갯수
     return {currRows,goodRows,rowsCount};
   },
@@ -793,23 +795,60 @@ const boardController = {
   },
   //댓글수정
   commentEdit: async function (req) {
-    const cols = { ...req.body };
-    const { query, values } = await sqlHelper.selectLimit(
+    const {table, form, id} = req.body;
+    const at = moment().format("YYYY-MM-DD HH:mm:ss");
+    const ip = getIp(req);
+    const payload={
+      ...form
+    }
+    const wr_id=payload.wr_id
+    delete payload.wr_id
+    delete payload.wr_ip
+    delete payload.wr_create_at
+    delete payload.wr_update_at
+    delete payload.good
+    delete payload.bad
+    delete payload.replys
+
+    payload.wr_update_at = at
+    payload.wr_ip=ip
+
+    const { query, values } = await sqlHelper.edit(
       `${TABLE.WRITE}${table}`,
-      cols
+      payload,
+      {wr_id}
     );
     const [rows] = await db.execute(query, values);
     return rows;
   },
   //댓글삭제
   commentDel: async function (req) {
-    const cols = { ...req.body };
-    const { query, values } = await sqlHelper.selectLimit(
+    const {table, form} = req.body;
+    const at = moment().format("YYYY-MM-DD HH:mm:ss");
+    const ip = getIp(req);
+    const payload={
+      ...form
+    }
+    const wr_id=form.wr_id
+    delete payload.wr_id
+    delete payload.wr_ip
+    delete payload.wr_create_at
+    delete payload.wr_update_at
+    delete payload.good
+    delete payload.bad
+    delete payload.replys
+
+    payload.wr_update_at = at
+    payload.wr_ip=ip
+    payload.wr_use=0
+    const { query, values } = await sqlHelper.edit(
       `${TABLE.WRITE}${table}`,
-      cols
+      payload,
+      {wr_id}
     );
-    const [rows] = await db.execute(query, values);
-    return rows;
+    const [deleteDone] = await db.execute(query, values);
+    console.log(deleteDone);
+    return deleteDone;
   },
   //답글추가
   replyAdd: async function (req) {
