@@ -741,6 +741,15 @@ const boardController = {
     const [rows] = await db.execute(query, values);
     return rows;
   },
+  //댓글목록 갯수만
+  commentListCount: async function (req) {
+    const {cols,table} = req.body
+    // 전체갯수
+    const cnt = await sqlHelper.selectSimpleCount(
+      `${TABLE.VIEW}${table}`,null,cols);
+    const [[{rowsCount}]] = await db.execute(cnt.query,cnt.values)
+    return rowsCount;
+  },
   //댓글목록
   commentList: async function (req) {
     // SELECT * FROM lion.write_test where wr_reply=1 order by wr_grp desc;
@@ -749,20 +758,13 @@ const boardController = {
     const curr = await sqlHelper.selectLimit(
       `${TABLE.VIEW}${table}`,currOpt,cols);
       const [currRows] = await db.execute(curr.query, curr.values);
-    // 전체갯수
-    const cnt = await sqlHelper.selectSimpleCount(
-      `${TABLE.VIEW}${table}`,null,cols);
-    const [[{rowsCount}]] = await db.execute(cnt.query,cnt.values)
     // 좋아요순
     const good = await sqlHelper.selectLimit(
       `${TABLE.VIEW}${table}`,goodOpt,cols);
     const [goodRows] = await db.execute(good.query, good.values);
 
-    if (rowsCount <= 0) {
-      return { err: "게시물이 없습니다" };
-    }
     // 최신순 시간순 // 공감순 좋아요 많은 것 // 전체 갯수
-    return {currRows,goodRows,rowsCount};
+    return {currRows,goodRows};
   },
   //댓글추가
   commentAdd: async function (req) {
@@ -850,7 +852,7 @@ const boardController = {
     console.log(deleteDone);
     return deleteDone;
   },
-  //답글추가
+  //대댓글추가
   replyAdd: async function (req) {
     const cols = { ...req.body };
     const { query, values } = await sqlHelper.selectLimit(
@@ -860,7 +862,7 @@ const boardController = {
     const [rows] = await db.execute(query, values);
     return rows;
   },
-  //답글수정
+  //대댓글수정
   replyEdit: async function (req) {
     const cols = { ...req.body };
     const { query, values } = await sqlHelper.selectLimit(
@@ -870,7 +872,7 @@ const boardController = {
     const [rows] = await db.execute(query, values);
     return rows;
   },
-  //답글삭제
+  //대댓글삭제
   replyDel: async function (req) {
     const cols = { ...req.body };
     const { query, values } = await sqlHelper.selectLimit(

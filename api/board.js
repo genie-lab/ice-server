@@ -99,17 +99,22 @@ router.put("/:table/commentDel", async (req,res)=>{
   const result = await modelCall(boardController.commentDel, req, res);
   res.json(result)
 })
-//답글추가
+//댓글리스트갯수 가져오기
+router.post("/:table/commentListCount", async (req,res)=>{
+  const result = await modelCall(boardController.commentListCount, req, res);
+  res.json(result)
+})
+//대댓글추가
 router.post("/:table/:id/replyAdd", async (req,res)=>{
   const result = await modelCall(boardController.replyAdd, req, res);
   res.json(result)
 })
-//답글수정
+//대댓글수정
 router.put("/:table/:id/replyEdit", async (req,res)=>{
   const result = await modelCall(boardController.replyEdit, req, res);
   res.json(result)
 })
-//답글삭제
+//대댓글삭제
 router.put("/:table/:id/replyDel", async (req,res)=>{
   const result = await modelCall(boardController.replyDel, req, res);
   res.json(result)
