@@ -104,11 +104,7 @@ router.post("/:table/commentListCount", async (req,res)=>{
   const result = await modelCall(boardController.commentListCount, req, res);
   res.json(result)
 })
-//대댓글추가
-router.post("/:table/:id/replyAdd", async (req,res)=>{
-  const result = await modelCall(boardController.replyAdd, req, res);
-  res.json(result)
-})
+
 //대댓글수정
 router.put("/:table/:id/replyEdit", async (req,res)=>{
   const result = await modelCall(boardController.replyEdit, req, res);

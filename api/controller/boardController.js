@@ -61,7 +61,6 @@ const boardController = {
     delete row.wrTags;
 
     //계층형 그룹
-    //계층형 그룹
     let sql;
     if (row.wr_parent == 0) {
       // 새글
@@ -751,49 +750,117 @@ const boardController = {
     return rowsCount;
   },
   //댓글목록
-  commentList: async function (req) {
-    // SELECT * FROM lion.write_test where wr_reply=1 order by wr_grp desc;
-    const {currOpt,goodOpt,cols,table} = req.body
-    // 최신순
-    const curr = await sqlHelper.selectLimit(
-      `${TABLE.VIEW}${table}`,currOpt,cols);
-      const [currRows] = await db.execute(curr.query, curr.values);
-    // 좋아요순
-    const good = await sqlHelper.selectLimit(
-      `${TABLE.VIEW}${table}`,goodOpt,cols);
-    const [goodRows] = await db.execute(good.query, good.values);
+  //댓글목록가져오기
+  async commentList(bo_table, option, member) {
+    if (!bo_table) {
+      const data = { err: "테이블이 지정되지 않았습니다." };
+      return resData(
+        STATUS.E200.result, //status
+        STATUS.E200.resultDesc, //message
+        moment().format("YYYY-MM-DD HH:mm:ss"),
+        data //data
+      );
+    }
+    const table = `${TABLE.VIEW}${bo_table}`;
+    const start = (option.page - 1) * option.itemsPerPage;
+    // console.log("start", start);
+    const end = option.itemsPerPage;
+    const sql = `select * from ${table} where wr_reply=${option.wr_reply} and wr_parent = 0
+    order by wr_grp desc, wr_order asc limit ${start},${end}`;
+    const [items] = await db.execute(sql);
+    // console.log("items", items);
 
-    // 최신순 시간순 // 공감순 좋아요 많은 것 // 전체 갯수
-    return {currRows,goodRows};
+    const countQuery = `select count(*) as totalItems  from ${table} where wr_reply=${option.wr_reply} and wr_parent = 0`;
+    const [[{ totalItems }]] = await db.execute(countQuery);
+    const ids = [];
+    const replys = [];
+    for (const item of items) {
+      console.log("item", item.wr_id);
+      ids.push(item.wr_id); // 아이디 모음
+      await boardController.addGoodFlag(bo_table, item, member);
+    }
+
+    //답글모아서 보내기
+    for (let i = 0; i < ids.length; i++) {
+      const sql = `select * from view_sts where wr_reply=${option.wr_reply} and wr_parent = ${ids[i]}
+    order by wr_grp desc, wr_order asc `;
+      const [items] = await db.execute(sql);
+      if (items?.length > 0) {
+        for (const item of items) {
+          await boardController.addGoodFlag(bo_table, item, member);
+          //추가
+        }
+      }
+      replys.push(items);
+    }
+    const replysArr = replys.filter((el) => {
+      return el.length > 0;
+    });
+    return { totalItems, items, replysArr };
   },
-  //댓글추가
+
+  //댓글추가 새글
   commentAdd: async function (req) {
     const {table, form, id} = req.body;
+
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
     const ip = getIp(req);
+    let cols={}
+    if(form.wr_parent==0){
+      const reply=await sqlHelper.selectLimit( `${TABLE.VIEW}${table}`,{
+        sortBy: ["wr_order","wr_grp","wr_dep"],
+        type: ["desc","desc","desc"],
+      },{wr_reply:id})
+      const [replRows]= await db.execute(reply.query,reply.values)
+      cols={
+        ...form,
+        wr_grp:replRows[0]?.wr_grp ? replRows[0]?.wr_grp+1 : 1,
+        wr_order: 0,
+        wr_dep: 0,
+        wr_ip:ip,
+        wr_create_at:at,
+        wr_update_at:at,
+      }
+      const { query, values } = await sqlHelper.insert(
+        `${TABLE.WRITE}${table}`,cols);
+      const [insertDone] = await db.execute(query, values);
+      if(insertDone.affectedRows==1){
+        insertDone.insertId
+        const item=await sqlHelper.selectLimit( `${TABLE.VIEW}${table}`,null,{wr_id:insertDone.insertId})//부모내역
+        const [[row]]= await db.execute(item.query,item.values)
+        return row;
+      }
+    }else{
 
-    const reply=await sqlHelper.selectLimit( `${TABLE.VIEW}${table}`,{
-      sortBy: ["wr_order","wr_grp","wr_dep"],
-      type: ["desc","desc","desc"],
-    },{wr_reply:id})
-    const [replRows]= await db.execute(reply.query,reply.values)
+      const reply=await sqlHelper.selectLimit( `${TABLE.VIEW}${table}`,null,{wr_id:form.wr_parent},['wr_grp','wr_order','wr_dep'])//부모내역
+      const [[parent]]= await db.execute(reply.query,reply.values)
+      cols={
+        ...form,
+        wr_grp:parent.wr_grp,
+        wr_order: parent.wr_order + 1,
+        wr_dep: parent.wr_dep + 1,
+        wr_ip:ip,
+        wr_create_at:at,
+        wr_update_at:at,
+      }
 
-    const cols={
-      ...form,
-      wr_grp:replRows[0]?.wr_grp ? replRows[0]?.wr_grp+1 : 1,
-      wr_order:replRows[0]?.wr_order ? replRows[0].wr_order+1 : 1,
-      wr_dep:form.wr_parent > 0 ? replRows[0]?.wr_dep+1 : 0,
-      wr_ip:ip,
-      wr_create_at:at,
-      wr_update_at:at,
+      // order를 1씩 올려줘서 최신글이 1이오겠금
+      const uSql = `UPDATE ${TABLE.WRITE}${table} SET wr_order = wr_order + 1
+				WHERE wr_reply=${cols.wr_reply} AND wr_grp=${parent.wr_grp} AND wr_order >= ${cols.wr_order}`;
+      await db.execute(uSql);
+
+      const { query, values } = await sqlHelper.insert(`${TABLE.WRITE}${table}`,cols);
+      const [insertDone] = await db.execute(query, values);
+
+      if(insertDone.affectedRows==1){
+        insertDone.insertId
+        const item=await sqlHelper.selectLimit( `${TABLE.VIEW}${table}`,null,{wr_id:insertDone.insertId})//부모내역
+        const [[row]]= await db.execute(item.query,item.values)
+        return row;
+      }
+
     }
-    const { query, values } = await sqlHelper.insert(
-      `${TABLE.WRITE}${table}`,
-      cols
-    );
-    const [insertDone] = await db.execute(query, values);
-    console.log(insertDone)
-    return insertDone;
+
   },
   //댓글수정
   commentEdit: async function (req) {
@@ -852,16 +919,7 @@ const boardController = {
     console.log(deleteDone);
     return deleteDone;
   },
-  //대댓글추가
-  replyAdd: async function (req) {
-    const cols = { ...req.body };
-    const { query, values } = await sqlHelper.selectLimit(
-      `${TABLE.WRITE}${table}`,
-      cols
-    );
-    const [rows] = await db.execute(query, values);
-    return rows;
-  },
+
   //대댓글수정
   replyEdit: async function (req) {
     const cols = { ...req.body };
