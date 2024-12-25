@@ -761,13 +761,13 @@ const boardController = {
   //댓글추가 새글*
   commentAdd: async function (bo_table, data) {
     const table = `${TABLE.WRITE}${bo_table}`; //생성테이블
-    // console.log("commentInsert bo_table", table, "data", data);
 
     let sql;
     if (data.wr_parent == 0) {
       // 새글
-      sql = `SELECT max(wr_grp) AS wr_grp FROM ${table} WHERE wr_reply=${data.wr_reply}`;
-      let wr_grp = (await db.execute(sql))[0][0].wr_grp;
+      const commParent = await sqlHelper.selectLimit(table,null,{wr_reply:Number(data.wr_reply)},[' max(wr_grp) AS wr_grp '])
+      const [[parent]]= await db.execute(commParent.query,commParent.values)
+      let wr_grp = parent.wr_grp
       data.wr_grp = wr_grp ? wr_grp + 1 : 1;
       data.wr_order = 0;
       data.wr_dep = 0;
@@ -786,12 +786,14 @@ const boardController = {
     data.wr_create_at = moment().format("YYYY-MM-DD HH:mm:ss");
     data.wr_update_at = moment().format("YYYY-MM-DD HH:mm:ss");
 
-    const query = sqlHelper.Insert(table, data);
+    const query =  await sqlHelper.insert(table, data)
     const [rows] = await db.execute(query.query, query.values);
-    // console.log("comment insert", rows);
     const wr_id = rows.insertId;
+
     const comm = await sqlHelper.selectLimit(table,null,{wr_id})
     const [[item]] = await db.execute(comm.query,comm.values)
+    console.log("item", item);
+
     return item;
 
   },

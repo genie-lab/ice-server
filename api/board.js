@@ -244,9 +244,7 @@ router.post("/:bo_table/commentAdd", async (req,res)=>{
   if (!grant) {
     return res.json({ err: "답글작성 권한이 없습니다." });
   }
-  const data = req.body;
-  // console.log("req.ip,req.ip", req.ip);
-  data.wr_ip = getIp(req);
+  const data = { ...req.body?.data, wr_ip : getIp(req)};
   const result = await modelCall(boardController.commentAdd, bo_table, data);
   res.json(result)
 })
