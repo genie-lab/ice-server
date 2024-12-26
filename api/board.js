@@ -10,9 +10,9 @@ const randToken = require("rand-token"); //Generate a 16 character alpha-numeric
 const fs = require("fs");
 const db = require("../plugins/mysql");
 
-/////////////////// 수정 접근 권한 확인 ////////////////// isModify(bo_table, req.user, data, checkToken, token);
+/////////////////// 수정 접근 권한 확인 ////////////////// isModify(bo_table, req.user[0], data, checkToken, token);
 async function isModify(bo_table, member, data, checkToken, token) {
-  //bo_table, req.user, data
+  //bo_table, req.user[0], data
   // console.log("checkToken, token", checkToken, token);
   let msg = "수정권한이 없습니다";
   if (member) {
@@ -102,7 +102,7 @@ router.put("/:bo_table/edit", upload().any(), async (req, res) => {
   const data = req.body;
   let modifyMsg = await isModify(
     bo_table,
-    req.user,
+    req.user[0],
     data,
     req.session?.checkToken,
     data.token
@@ -131,13 +131,13 @@ router.put("/:bo_table/:wr_id/:token", async (req, res) => {
   const checkToken = req.session.checkToken;
   console.log("checkToken", checkToken);
   req.session.checkToken = null;
-  const modifyMsg = await isModify(bo_table, req.user, data, checkToken, token);
+  const modifyMsg = await isModify(bo_table, req.user[0], data, checkToken, token);
   // async function isModify(bo_table, member, data, checkToken, token) { data.mb_id == 0
 
   if (modifyMsg) {
     return res.json({ err: modifyMsg });
   }
-  const result = await modelCall(boardController.del, bo_table,wr_id,req.user);
+  const result = await modelCall(boardController.del, bo_table,wr_id,req.user[0]);
   res.json(result);
 });
 
@@ -167,7 +167,7 @@ router.get("/:bo_table/list", async (req, res) => {
       )
     );
   }
-  const result = await modelCall(boardController.list, config,bo_table,req.query,req.user);
+  const result = await modelCall(boardController.list, config,bo_table,req.query,req.user[0]);
   res.json(result);
 });
 
@@ -179,7 +179,7 @@ router.get("/:bo_table/:wr_id/listByWhere", async (req, res) => {
   if (!grant) {
     return res.json({ err: "목록읽기 권한이 없습니다." });
   }
-  const result = await modelCall(boardController.getItem, bo_table,wr_id,req.user);
+  const result = await modelCall(boardController.getItem, bo_table,wr_id,req.user[0]);
   res.json(result);
 });
 
@@ -233,7 +233,7 @@ router.patch("/:bo_table/:wr_id/viewUp", async (req,res)=>{
 //댓글목록*
 router.post("/:bo_table/:wr_reply/commentList", async (req,res)=>{
   const { bo_table, wr_reply } = req.params;
-  const result = await modelCall(boardController.commentList, bo_table,Number(wr_reply),req.body,req.user);
+  const result = await modelCall(boardController.commentList, bo_table,Number(wr_reply),req.body,req.user[0]);
   res.json(result)
 })
 //댓글추가*
@@ -260,7 +260,7 @@ router.put("/:bo_table/commentEdit", async (req,res)=>{
   let result = null;
   req.session.checkToken = null;
   // 수정권한 확인
-  let modifyMsg = await isModify(bo_table, req.user, data);
+  let modifyMsg = await isModify(bo_table, req.user[0], data);
   if (modifyMsg) {
     result = { err: modifyMsg };
   } else {

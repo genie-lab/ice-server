@@ -660,8 +660,9 @@ const boardController = {
   },
   //좋아요 붙이기 //내부용*
   addGoodFlag: async function (table, row, member = null) {
+    console.log('member',member)
     if (member) {
-      row.goodFlag = await getFlag(table, row, member); //goodController에서
+      row.goodFlag = await getFlag(table, row.wr_id, member.mb_id); //goodController에서
     } else {
       row.goodFlag = 0;
     }

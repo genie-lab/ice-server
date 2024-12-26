@@ -4,6 +4,7 @@ const sqlHelper = require("../../util/sqlHelper");
 const qs = require("qs");
 const { ip, ipv6, mac } = require("address");
 const moment = require("../../util/moment");
+const { tagAdd } = require("./searchController");
 
 const goodController = {
   
@@ -11,8 +12,8 @@ const goodController = {
   listByWhere: async function (req,res) {
     const member = req.user[0];
     if (!member) { return res.json({ err: "회원만 가능합니다" }) }
-    const bo_table = req.params.table;
-    const wr_id = req.params.id;
+    const bo_table = req.params.bo_table;
+    const wr_id = req.params.wr_id;
     const mb_id = member.mb_id;
     const good = await goodController.getCount(bo_table, wr_id, 1); //좋아요==1
     const bad = await goodController.getCount(bo_table, wr_id, 2); //싫어요==2
@@ -29,6 +30,7 @@ const goodController = {
   getFlag: async function (bo_table, wr_id, mb_id){
     const { query, values } = await sqlHelper.selectLimit(TABLE.BOARD_GOOD, null, {bo_table, wr_id, mb_id}, ['bg_flag'] );
     const [[me]] = await db.execute(query, values);
+
     let flag=0;
     if(me){ flag = me.bg_flag; }
     return flag
@@ -38,33 +40,37 @@ const goodController = {
     const member = req.user[0];
     if (!member) { return res.json({ err: "회원만 가능합니다" }) }
     const { bg_flag } = req.body;
-    const bo_table = req.params.table;
-    const wr_id = req.params.id;
+    const bo_table = req.params.bo_table;
+    const wr_id = req.params.wr_id;
     const mb_id = member.mb_id;
-    const payload = {
-      bo_table, wr_id, mb_id, bg_flag,
-      bg_create_at: moment().format("YYYY-MM-DD HH:mm:ss"),
-    };
-    const { query, values } = await sqlHelper.insert(TABLE.SALES, payload); //좋아요싫어요 저장
-    await db.execute(query, values);
-    const good = await goodController.getCount(bo_table, wr_id, 1); //좋아요 갯수
-    const bad = await goodController.getCount(bo_table, wr_id, 2); //싫어요 갯수
-    const goodFlag = await goodController.getFlag(bo_table, wr_id, mb_id); //내 의사플래그
-    return { good, bad, goodFlag };
-  },
-  //좋아요 싫어요 삭제
-  del: async function (req,res) {
-    const member = req.user[0];
-    if (!member) { return res.json({ err: "회원만 가능합니다" }) }
-    const bo_table = req.params.table;
-    const wr_id = req.params.id;
-    const mb_id = member.mb_id;
-    const { query, values } = await sqlHelper.del(TABLE.BOARD_GOOD, {bo_table, wr_id, mb_id});
-    await db.execute(query, values); //좋아요싫어요 삭제
-    const good = await goodController.getCount(bo_table, wr_id, 1); //좋아요 갯수
-    const bad = await goodController.getCount(bo_table, wr_id, 2); //싫어요 갯수
-    const goodFlag = await goodController.getFlag(bo_table, wr_id, mb_id); //내 의사플래그
-    return { good, bad, goodFlag };
+    
+    //같은 것 두번 눌렀을 때는 goodFlag를 0으로 만들어야 함
+    const storedFlag = await goodController.getFlag(bo_table, wr_id, mb_id); //내 의사플래그
+    if(bg_flag==storedFlag){
+      //기존 아이디 삭제
+      const { query, values } = await sqlHelper.del(TABLE.BOARD_GOOD, {bo_table, wr_id, mb_id});
+      await db.execute(query, values); //좋아요싫어요 삭제
+      const good = await goodController.getCount(bo_table, wr_id, 1); //좋아요 갯수
+      const bad = await goodController.getCount(bo_table, wr_id, 2); //싫어요 갯수
+      return { good, bad, goodFlag:0 };
+    }else{
+      //기존 아이디 삭제
+      const { query, values } = await sqlHelper.del(TABLE.BOARD_GOOD, {bo_table, wr_id, mb_id});
+      await db.execute(query, values); //좋아요싫어요 삭제
+
+      //좋아요 추가
+      const payload = {
+        bo_table, wr_id, mb_id, bg_flag,
+        bg_create_at: moment().format("YYYY-MM-DD HH:mm:ss"),
+      };
+      const yes = await sqlHelper.insert(TABLE.BOARD_GOOD, payload); 
+      await db.execute(yes.query, yes.values);
+      const good = await goodController.getCount(bo_table, wr_id, 1); //좋아요 갯수
+      const bad = await goodController.getCount(bo_table, wr_id, 2); //싫어요 갯수
+      const goodFlag = await goodController.getFlag(bo_table, wr_id, mb_id); //내 의사플래그
+
+      return { good, bad, goodFlag };
+    }
   },
 };
 module.exports = goodController;
