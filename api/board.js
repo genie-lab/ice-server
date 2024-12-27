@@ -12,7 +12,6 @@ const db = require("../plugins/mysql");
 
 /////////////////// 수정 접근 권한 확인 ////////////////// isModify(bo_table, req.user[0], data, checkToken, token);
 async function isModify(bo_table, member, data, checkToken, token) {
-  //bo_table, req.user[0], data
   // console.log("checkToken, token", checkToken, token);
   let msg = "수정권한이 없습니다";
   if (member) {
@@ -31,12 +30,7 @@ async function isModify(bo_table, member, data, checkToken, token) {
     } else {
       const wr_id = data.wr_id;
       const password = data.wr_password;
-      const cnt = await modelCall(
-        boardController.checkItem,
-        bo_table,
-        wr_id,
-        password
-      );
+      const cnt = await modelCall(boardController.checkItem,bo_table,wr_id,password);
       if (cnt == 1) {
         msg = "";
       } else {
@@ -45,6 +39,9 @@ async function isModify(bo_table, member, data, checkToken, token) {
     }
   }
   return msg;
+}
+async function isMember(req){
+  return req?.user?.length > 0 ? req?.user[0] : null
 }
 
 // // 관리자 게시판 설정 가져오기*
@@ -87,6 +84,7 @@ router.post("/:bo_table/add", upload().any(), async (req, res) => {
 //게시글 수정*
 router.put("/:bo_table/edit", upload().any(), async (req, res) => {
   const { bo_table } = req.params;
+  const member = await isMember(req);
   const config = await modelCall(boardController.getConfig, bo_table);
   const grant = isGrant(req, config.bo_write_level);
   if (!grant) {
@@ -100,13 +98,7 @@ router.put("/:bo_table/edit", upload().any(), async (req, res) => {
   }
 
   const data = req.body;
-  let modifyMsg = await isModify(
-    bo_table,
-    req.user[0],
-    data,
-    req.session?.checkToken,
-    data.token
-  );
+  let modifyMsg = await isModify(bo_table,member,data,req.session?.checkToken,data.token);
   delete data.token;
 
   if (modifyMsg) {
@@ -119,7 +111,6 @@ router.put("/:bo_table/edit", upload().any(), async (req, res) => {
     );
   }
   data.wr_ip = getIp(req);
-
   const result = await modelCall(boardController.edit, bo_table,data,req);
   res.json(result);
 });
@@ -127,17 +118,14 @@ router.put("/:bo_table/edit", upload().any(), async (req, res) => {
 //게시글 삭제*
 router.put("/:bo_table/:wr_id/:token", async (req, res) => {
   const { bo_table, wr_id, token } = req.params;
-  // console.log("bo_table, wr_id", bo_table, wr_id, token);
+  const member = await isMember(req);
   const checkToken = req.session.checkToken;
-  console.log("checkToken", checkToken);
   req.session.checkToken = null;
-  const modifyMsg = await isModify(bo_table, req.user[0], data, checkToken, token);
+  const modifyMsg = await isModify(bo_table, member, data, checkToken, token);
   // async function isModify(bo_table, member, data, checkToken, token) { data.mb_id == 0
 
-  if (modifyMsg) {
-    return res.json({ err: modifyMsg });
-  }
-  const result = await modelCall(boardController.del, bo_table,wr_id,req.user[0]);
+  if (modifyMsg) {return res.json({ err: modifyMsg });}
+  const result = await modelCall(boardController.del, bo_table,wr_id,isMember(req));
   res.json(result);
 });
 
@@ -156,6 +144,7 @@ router.put("/:bo_table/:wr_id/:token", async (req, res) => {
 //게시물 목록을 가져옴*
 router.get("/:bo_table/list", async (req, res) => {
   const { bo_table } = req.params;
+  const member = await isMember(req);
   const config = await modelCall(boardController.getConfig, bo_table);
   const grant = isGrant(req, config.bo_list_level);
   if (!grant) {
@@ -167,19 +156,20 @@ router.get("/:bo_table/list", async (req, res) => {
       )
     );
   }
-  const result = await modelCall(boardController.list, config,bo_table,req.query,req.user[0]);
+  const result = await modelCall(boardController.list, config,bo_table,req.query,member);
   res.json(result);
 });
 
 //게시물 읽기 where절 목록*
 router.get("/:bo_table/:wr_id/listByWhere", async (req, res) => {
   const { bo_table, wr_id } = req.params;
+  const member = await isMember(req);
   const config = await modelCall(boardController.getConfig, bo_table);
   const grant = isGrant(req, config.bo_list_level);
   if (!grant) {
     return res.json({ err: "목록읽기 권한이 없습니다." });
   }
-  const result = await modelCall(boardController.getItem, bo_table,wr_id,req.user[0]);
+  const result = await modelCall(boardController.getItem, bo_table,wr_id,member);
   res.json(result);
 });
 
@@ -214,7 +204,6 @@ router.get("/:bo_table/:wr_grp/listPrevNext", async (req,res)=>{
 //작성자글 모아보기 - 게시물 관련 목록을 가져옴2*
 router.get("/:bo_table/:wr_grp/infoGrp", async (req,res)=>{
   const {bo_table, wr_grp} = req.params
-
   const config = await modelCall(boardController.getConfig, bo_table);
   const result = await modelCall(boardController.getInfoGrp,config,bo_table,wr_grp,req);
   res.json(result);
@@ -233,7 +222,8 @@ router.patch("/:bo_table/:wr_id/viewUp", async (req,res)=>{
 //댓글목록*
 router.post("/:bo_table/:wr_reply/commentList", async (req,res)=>{
   const { bo_table, wr_reply } = req.params;
-  const result = await modelCall(boardController.commentList, bo_table,Number(wr_reply),req.body,req.user[0]);
+  const member = await isMember(req)
+  const result = await modelCall(boardController.commentList, bo_table,Number(wr_reply), req.body, member);
   res.json(result)
 })
 //댓글추가*
@@ -251,6 +241,7 @@ router.post("/:bo_table/commentAdd", async (req,res)=>{
 //댓글수정*
 router.put("/:bo_table/commentEdit", async (req,res)=>{
   const { bo_table } = req.params;
+  const member = await isMember(req)
   const config = await modelCall(boardController.getConfig, bo_table);
   const grant = isGrant(req, config.bo_reply_level);
   if (!grant) {
@@ -260,7 +251,7 @@ router.put("/:bo_table/commentEdit", async (req,res)=>{
   let result = null;
   req.session.checkToken = null;
   // 수정권한 확인
-  let modifyMsg = await isModify(bo_table, req.user[0], data);
+  let modifyMsg = await isModify(bo_table, member, data);
   if (modifyMsg) {
     result = { err: modifyMsg };
   } else {

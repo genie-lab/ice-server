@@ -660,7 +660,6 @@ const boardController = {
   },
   //좋아요 붙이기 //내부용*
   addGoodFlag: async function (table, row, member = null) {
-    console.log('member',member)
     if (member) {
       row.goodFlag = await getFlag(table, row.wr_id, member.mb_id); //goodController에서
     } else {
@@ -724,7 +723,7 @@ const boardController = {
   },
   //댓글목록
   //댓글목록가져오기*
-  async commentList(bo_table, wr_reply, options, member) {
+  async commentList(bo_table, wr_reply, options, member=null) {
 
     options.page= Number(options.page)-1
     const cols = {wr_reply,wr_parent:0}
@@ -753,9 +752,12 @@ const boardController = {
       }
       replys.push(rows);
     }
+
     const replysArr = replys.filter((el) => {
       return el.length > 0;
     });
+    // console.log('rowsCount, rows, replysArr',rowsCount, rows, replysArr)
+
     return { rowsCount, rows, replysArr };
   },
 
