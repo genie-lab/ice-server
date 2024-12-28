@@ -62,6 +62,7 @@ const boardController = {
   //게시글 추가 - 글쓰기*
   add: async (bo_table, row, req) => {
 
+    console.log('row>>>>>>>>>>>',row);
     //디비 안들어가는 것 지우기
     delete row.wrFiles;
 
@@ -77,19 +78,19 @@ const boardController = {
     let sql;
     if (row.wr_parent == 0) {
       // 새글
-      sql = `SELECT max(wr_grp) AS wr_grp FROM ${TABLE.WRITE}${table}`; // 글쓰기 그룹을 가져옴
+      sql = `SELECT max(wr_grp) AS wr_grp FROM ${table}`; // 글쓰기 그룹을 가져옴
       let wr_grp = (await db.execute(sql))[0][0].wr_grp; //
       row.wr_grp = wr_grp ? wr_grp + 1 : 1; // 그룹 null이면 1
       row.wr_order = 0; // 순서
       row.wr_dep = 0; // 깊이
     } else {
       // 답글
-      sql = `SELECT wr_grp, wr_order, wr_dep FROM ${TABLE.WRITE}${table} WHERE wr_id=${row.wr_parent}`;
+      sql = `SELECT wr_grp, wr_order, wr_dep FROM ${table} WHERE wr_id=${row.wr_parent}`;
       const [parent] = (await db.execute(sql))[0];
       row.wr_grp = parent.wr_grp;
       row.wr_order = parent.wr_order + 1;
       row.wr_dep = parent.wr_dep + 1;
-      const uSql = `UPDATE ${TABLE.WRITE}${table} SET wr_order = wr_order + 1
+      const uSql = `UPDATE ${table} SET wr_order = wr_order + 1
 					WHERE wr_reply=0 AND wr_grp=${parent.wr_grp} AND wr_order >= ${row.wr_order}`;
       await db.execute(uSql);
     }
@@ -110,16 +111,13 @@ const boardController = {
       wr_ip: ip,
     };
 
-    const { query, values } = await sqlHelper.insert(
-      `${TABLE.WRITE}${table}`,
-      payload
-    );
+    const { query, values } = await sqlHelper.insert(`${table}`,payload);
     const [insertDone] = await db.execute(query, values);
     const wr_id = insertDone.insertId; // auto increment id
 
     //태그등록
     if (wrTags?.length > 0) {
-      await searchController.tagAdd(table, wr_id, wrTags);
+      await searchController.tagAdd(bo_table, wr_id, wrTags);
     }
 
     //파일추가
@@ -141,7 +139,7 @@ const boardController = {
         if (insertDone?.affectedRows == 1) {
           //files에 저장하기
           const filePayload = {
-            f_field: `${TABLE.WRITE}${table}`,
+            f_field: `${table}`,
             f_fieldname: insertDone.insertId,
             f_originalname: files[i].originalname,
             f_encoding: files[i].encoding,
@@ -151,10 +149,7 @@ const boardController = {
             f_path: files[i].path,
             f_size: files[i].size,
           };
-          const { query, values } = await sqlHelper.insert(
-            TABLE.FILES,
-            filePayload
-          );
+          const { query, values } = await sqlHelper.insert(TABLE.FILES,filePayload);
           await db.execute(query, values);
         }
 
@@ -167,11 +162,7 @@ const boardController = {
         }
       }
       //이미지 링크교체된것 최종 게시판테이블 업데이트
-      const updateQuery = await sqlHelper.edit(
-        `${TABLE.WRITE}${table}`,
-        { wr_content },
-        { wr_id }
-      );
+      const updateQuery = await sqlHelper.edit(`${table}`,{ wr_content },{ wr_id });
       await db.execute(updateQuery.query, updateQuery.values);
     }
     // 게시물 아이디
@@ -328,13 +319,8 @@ const boardController = {
     await searchController.tagDel(bo_table, wr_id);
 
     // 삭제할 로우의 관련파일 가져오기
-    const { query, values } = await sqlHelper.selectLimit(
-      TABLE.FILES,
-      null,
-      {
-        f_field: table,
-        f_fieldname: wr_id,
-      },
+    const { query, values } = await sqlHelper.selectLimit(TABLE.FILES,null,
+      {f_field: table,f_fieldname: wr_id,},
       ["f_id", "f_filename"]
     );
 
@@ -346,13 +332,10 @@ const boardController = {
 
     // 게시물이 본문글이면 댓글도 삭제
     const sqlReply = await sqlHelper.selectLimit(
-      `${TABLE.WRITE}${bo_table}`,
-      null,
-      { wr_id },
-      ["wr_reply"]
-    );
+      `${TABLE.WRITE}${bo_table}`,null,{ wr_reply: wr_id },["wr_reply"]);
     const [replRows] = await db.execute(sqlReply.query, sqlReply.values);
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
+    let delCnt=0;
     // 댓글이 없을때==============> 삭제
     if (replRows[0]?.wr_reply == 0) {
       const payload = {
@@ -363,46 +346,51 @@ const boardController = {
       const replDel = await sqlHelper.edit(`${TABLE.WRITE}${bo_table}`, payload, {
         wr_reply: wr_id,
       });
-      await db.execute(replDel.query, replDel.values);
+      const [parentDel]=await db.execute(replDel.query, replDel.values);
+      delCnt = parentDel.affectedRows
+    }else{
+      const payload = {
+        wr_use: 0,
+        wr_update_at: at,
+        wr_ip: ip,
+      };
+      const rows = await sqlHelper.edit(`${TABLE.WRITE}${bo_table}`, payload, {wr_reply:wr_id});
+      const [childDel] = await db.execute(rows.query, rows.values);
+      delCnt = childDel.affectedRows
     }
-    const payload = {
-      wr_use: 0,
-      wr_update_at: at,
-      wr_ip: ip,
-    };
-    const rows = await sqlHelper.edit(`${TABLE.WRITE}${bo_table}`, payload, {
-      wr_id,
-    });
-    const [result] = await db.execute(rows.query, rows.values);
 
-    return result.affectedRows;
+    return delCnt;
+  },
+  //수정시 게시글 삭제 //내부용
+  removeComment: async (bo_table, wr_id) => {
+    // 게시물 댓글 삭제
+      const rows = await sqlHelper.del(`${TABLE.WRITE}${bo_table}`,{wr_id});
+      const [childDel] = await db.execute(rows.query, rows.values);
+      const delCnt = childDel.affectedRows
+    return delCnt;
   },
   //게시글 삭제*
-  del: async (bo_table, wr_id, member) => {
+  del: async (bo_table, id, member) => {
+    const wr_id = Number(id)
     const table = `${TABLE.WRITE}${bo_table}`;
     let delCnt = 0;
     // 자식글이 있는지 확인
-    const [children] = await sqlHelper.selectLimit(table, null, { wr_parent: wr_id },["wr_id"]);
+    const ch = await sqlHelper.selectLimit(table, null, { wr_reply: wr_id },["wr_id"]);
+    const [children] = await db.execute(ch.query,ch.values)
 
     // 최고 관리자 이면 모두 삭제함
-    if (member && member.mb_level >= LV.SUPER) {
+    if (member && member?.mb_level >= LV.SUPER) {
       for (const child of children) {
-        delCnt += await boardController.del(
-          bo_table,
-          child.wr_id,
-          member
-        );
+        delCnt += await boardController.del(bo_table, child.wr_id, member);
       }
       delCnt += await boardController.removeItem(bo_table, wr_id);
     } else {
-      if (children.length == 0) {
-        // 답글이 없으면,
-        const replys = await sqlHelper.getItemBy(
-          db,
-          table,
-          { wr_reply: wr_id },
-          ["wr_id"]
-        );
+      if (children?.length == 0) {
+
+        // 답글 유무,
+        const replys = await sqlHelper.selectLimit(table,null,{ wr_reply: wr_id },["wr_id"]);
+        console.log('children',children);
+
         if (replys.length == 0) {
           // 댓글이 없으면
           delCnt += await boardController.removeItem(bo_table, wr_id);
@@ -456,7 +444,7 @@ const boardController = {
     return rowsCount;
   },
   //페이지 목록*
-  list: async function (config, bo_table, options, member) {
+  list: async function (bo_table, options, member) {
 
     if (!bo_table) {
       const data = { err: "테이블이 지정되지 않았습니다." };
@@ -486,40 +474,23 @@ const boardController = {
       const searchCols = colnames.map((c) => {
         return c.COLUMN_NAME;
       });
-      const { query, values } = await sqlHelper.selectLimit(
-        `${TABLE.VIEW}${req.params.table}`,
-        options,
-        cols,
-        null,
-        searchCols
-      );
+      const { query, values } = await sqlHelper.selectLimit(table,options,cols,null,searchCols);
       const [rows] = await db.execute(query, values);
       return rows;
     } else {
-      const { query, values } = await sqlHelper.selectLimit(
-        `${TABLE.VIEW}${req.params.table}`,
-        options,
-        cols
-      );
-
+      const { query, values } = await sqlHelper.selectLimit(table,options,cols);
       const [rows] = await db.execute(query, values);
       for (const row of rows) {
         await boardController.addFiles(bo_table, row);
         await boardController.addGoodFlag(bo_table, row, member);
       }
-      // console.log("rows", rows.length);
-      const cnt = await sqlHelper.selectSimpleCount(table,options)
+      const cnt = await sqlHelper.selectSimpleCount(table, null, cols)
       // const countQuery = `SELECT COUNT(*) AS count FROM ${table} ${where}`;
-      // console.log(countQuery);
 
       const [[{ rowsCount }]] = await db.execute(cnt.query,cnt.values);
-      // console.log(count);
 
-      const data = {
-        count: rowsCount,
-        rows,
-      };
-      // console.log(totalItems, items);
+      const data = {rowsCount,rows};
+      // console.log(rowsCount, rows);
       return {
         status: STATUS.S200.result, //status
         message: STATUS.S200.resultDesc, //message
@@ -840,32 +811,36 @@ const boardController = {
     }
   },
   //댓글삭제
-  commentDel: async function (req) {
-    const {table, form} = req.body;
-    const at = moment().format("YYYY-MM-DD HH:mm:ss");
-    const ip = getIp(req);
-    const payload={
-      ...form
-    }
-    const wr_id=form.wr_id
-    delete payload.wr_id
-    delete payload.wr_ip
-    delete payload.wr_create_at
-    delete payload.wr_update_at
-    delete payload.good
-    delete payload.bad
-    delete payload.replys
+  commentDel: async function (bo_table,id,member) {
+    const wr_id = Number(id)
+    const table = `${TABLE.WRITE}${bo_table}`;
+    let delCnt = 0;
+    // 자식글이 있는지 확인
+    const ch = await sqlHelper.selectLimit(table, null, { wr_parent: wr_id },["wr_id"]);
+    const [children] = await db.execute(ch.query,ch.values)
 
-    payload.wr_update_at = at
-    payload.wr_ip=ip
-    payload.wr_use=0
-    const { query, values } = await sqlHelper.edit(
-      `${TABLE.WRITE}${table}`,
-      payload,
-      {wr_id}
-    );
-    const [deleteDone] = await db.execute(query, values);
-    return deleteDone;
+    // 최고 관리자 이면 모두 삭제함
+    if (member?.mb_level >= LV.SUPER) {
+      for (const child of children) {
+        delCnt += await boardController.commentDel(bo_table, child.wr_id, member);
+      }
+      delCnt += await boardController.removeComment(bo_table, wr_id);
+    } else {
+      if (children?.length == 0) {
+        // 답글 유무,
+        const replys = await sqlHelper.del(table,{ wr_id });
+        const [result] = await db.execute(replys.query,replys.values)
+        console.log('result',result);
+        delCnt = result.affectedRows
+      } else {
+        return resData(
+          STATUS.E200.result, //status
+          STATUS.E200.resultDesc + "답글이 있어 삭제할 수 없습니다.", //message
+          moment().format("YYYY-MM-DD HH:mm:ss")
+        );
+      }
+    }
+    return delCnt
   },
 
   //대댓글수정

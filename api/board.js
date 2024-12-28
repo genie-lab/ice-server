@@ -11,15 +11,15 @@ const fs = require("fs");
 const db = require("../plugins/mysql");
 
 /////////////////// 수정 접근 권한 확인 ////////////////// isModify(bo_table, req.user[0], data, checkToken, token);
-async function isModify(bo_table, member, data, checkToken, token) {
+async function isModify(bo_table, member, data=null, checkToken, token) {
   // console.log("checkToken, token", checkToken, token);
   let msg = "수정권한이 없습니다";
   if (member) {
     //관리자이거나 자신이 작성한 글이면
-    if (member.mb_level >= LV.ADMIN || member.mb_id == data.mb_id) {
+    if (member.mb_level >= LV.ADMIN || member.mb_id == data?.mb_id) {
       msg = "";
     }
-  } else if (data.mb_id == 0) {
+  } else if (data?.mb_id == 0) {
     // 비회원 작성글이면 mb_id는 String이다
     if (checkToken) {
       if (checkToken === token) {
@@ -28,8 +28,8 @@ async function isModify(bo_table, member, data, checkToken, token) {
         msg = "토큰이 올바르지 않습니다";
       }
     } else {
-      const wr_id = data.wr_id;
-      const password = data.wr_password;
+      const wr_id = data?.wr_id;
+      const password = data?.wr_password;
       const cnt = await modelCall(boardController.checkItem,bo_table,wr_id,password);
       if (cnt == 1) {
         msg = "";
@@ -121,11 +121,11 @@ router.put("/:bo_table/:wr_id/:token", async (req, res) => {
   const member = await isMember(req);
   const checkToken = req.session.checkToken;
   req.session.checkToken = null;
-  const modifyMsg = await isModify(bo_table, member, data, checkToken, token);
+  const modifyMsg = await isModify(bo_table, member, null, checkToken, token);
   // async function isModify(bo_table, member, data, checkToken, token) { data.mb_id == 0
 
   if (modifyMsg) {return res.json({ err: modifyMsg });}
-  const result = await modelCall(boardController.del, bo_table,wr_id,isMember(req));
+  const result = await modelCall(boardController.del, bo_table,wr_id,member);
   res.json(result);
 });
 
@@ -156,7 +156,7 @@ router.get("/:bo_table/list", async (req, res) => {
       )
     );
   }
-  const result = await modelCall(boardController.list, config,bo_table,req.query,member);
+  const result = await modelCall(boardController.list, bo_table,req.query,member);
   res.json(result);
 });
 
@@ -245,7 +245,7 @@ router.put("/:bo_table/commentEdit", async (req,res)=>{
   const config = await modelCall(boardController.getConfig, bo_table);
   const grant = isGrant(req, config.bo_reply_level);
   if (!grant) {
-    return res.json({ err: "답글수정 권한이 없습니다." });
+    return res.json({ err: "댓글수정 권한이 없습니다." });
   }
   const data = req.body;
   let result = null;
@@ -260,11 +260,19 @@ router.put("/:bo_table/commentEdit", async (req,res)=>{
   }
   res.json(result);
 })
-// //댓글삭제
-// router.put("/:bo_table/commentDel", async (req,res)=>{
-//   const result = await modelCall(boardController.commentDel, req, res);
-//   res.json(result)
-// })
+//댓글삭제
+router.delete("/:bo_table/:wr_id/commentDel", async (req,res)=>{
+  const { bo_table,wr_id } = req.params;
+  const member = await isMember(req)
+  const config = await modelCall(boardController.getConfig, bo_table);
+  const grant = isGrant(req, config.bo_reply_level);
+  if (!grant) {
+    return res.json({ err: "댓글삭제 권한이 없습니다." });
+  }
+  // const result = await modelCall(boardController.del, bo_table,wr_id,member);
+  const result = await modelCall(boardController.commentDel, bo_table,wr_id,member);
+  res.json(result)
+})
 // //댓글리스트갯수 가져오기
 // router.post("/:bo_table/commentListCount", async (req,res)=>{
 //   const result = await modelCall(boardController.commentListCount, req, res);
