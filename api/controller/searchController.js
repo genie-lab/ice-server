@@ -46,7 +46,6 @@ const searchController = {
   },
   //태그 추가
   tagAdd: async function (table, wr_id, wrTags) {
-
     // bo_table, wr_id == pk
     //등록전 전체 삭제
     await searchController.tagDel(table, wr_id);

@@ -190,9 +190,8 @@ router.post("/:bo_table/check/:wr_id", async (req, res) => {
 
 //최근 게시물 가져오기*
 router.get("/:bo_table/:limit/latest", async (req,res)=>{
-  const bo_table = req.params.bo_table;
+  const {bo_table,limit} = req.params;
   const config = await modelCall(boardController.getConfig, bo_table);
-  const limit = req.params.limit;
   const result = await modelCall(boardController.latest, config,bo_table,limit);
   res.json(result)
 })

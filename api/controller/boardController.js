@@ -534,36 +534,35 @@ const boardController = {
   //최근 게시물 가져오기*
   latest: async function (config, bo_table, limit) {
     const table = `${TABLE.VIEW}${bo_table}`;
-    const sql = sqlHelper.selectLimit(table, null, { wr_reply: 0 }); // 부모글
-    const manyReplys =
-      sql.query + ` ORDER BY replys DESC, wr_update_at DESC LIMIT ${limit}`; // 댓글 수
-    const manyViews =
-      sql.query + ` ORDER BY wr_view DESC, wr_update_at DESC LIMIT ${limit}`; // 본 수
-    const manyGoods =
-      sql.query + ` ORDER BY good DESC, wr_update_at DESC LIMIT ${limit}`; // 좋아요
-    sql.query += ` ORDER BY wr_update_at DESC LIMIT ${limit}`; // 부모글
-
-    const [rows] = await db.execute(sql.query, sql.values); // 부모글
-    const [replys] = await db.execute(manyReplys, sql.values); // 댓글 수
-    const [views] = await db.execute(manyViews, sql.values); // 본 수
-    const [goods] = await db.execute(manyGoods, sql.values); // 좋아요
+    const sql = `select * from ${table} WHERE wr_reply=0 and wr_use=1 ` // 부모글
+    const manyReplys = sql + ` ORDER BY replys DESC, wr_update_at DESC LIMIT ${limit}`; // 답글 또는 부모글
+    const manyViews = sql + ` ORDER BY wr_view DESC, wr_update_at DESC LIMIT ${limit}`; // 본 수
+    const manyGoods = sql + ` ORDER BY good DESC, wr_update_at DESC LIMIT ${limit}`; // 좋아요
+    const [replys] = await db.execute(manyReplys); // 부모글또는 답글 wr_reply==0 수
+    const [views] = await db.execute(manyViews); // 본 수
+    const [goods] = await db.execute(manyGoods); // 좋아요
 
     // 썸네일 이미지 연결 - 게시물에 연관 파일을 붙인다.
-    for (const item of rows) {
-      const row = item;
-      await boardController.addFiles(table, row);
-      await searchController.addTags(table, row); // tags
+    for (const row of replys) {
+      await boardController.addFiles(bo_table, row);
+      await boardController.addTags(bo_table, row); // tags
       row.thumb = getImage(config, row);
     }
-    // 댓글 게시물에 연관파일을 붙인다
-    for (const item of replys) {
-      const row = item;
-      await boardController.addFiles(table, row);
-      await searchController.addTags(table, row); // tags
+
+    for (const row of views) {
+      await boardController.addFiles(bo_table, row);
+      await boardController.addTags(bo_table, row); // tags
       row.thumb = getImage(config, row);
     }
-    return { title: config.bo_title, rows, replys, views, goods }; //게시판이름, 부모글5,답글5,조회수5,좋아요5
+
+    for (const row of goods) {
+      await boardController.addFiles(bo_table, row);
+      await boardController.addTags(bo_table, row); // tags
+      row.thumb = getImage(config, row);
+    }
+    return {table:bo_table,replys,views,goods}; //게시판이름, 부모 또는 답글5,조회수5,좋아요5
   },
+
   //최근 게시물 가져오기에 파일 붙이기 //내부용*
   addFiles: async function (table, row) {
     //파일테이블내역 불러오기
@@ -640,9 +639,9 @@ const boardController = {
   //게시물 관련 목록을 가져옴 // 이전글/다음글/관련글*
   getInfo: async function (bo_table, wr_grp) {
     const table = `${TABLE.WRITE}${bo_table}`;
-    const prev = await sqlHelper.selectLimit(table,null,{wr_reply: 0, wr_grp: wr_grp - 1});
+    const prev = await sqlHelper.selectLimit(table,null,{wr_reply: 0, wr_use:1, wr_grp: wr_grp - 1});
     const [[prevResult]] = await db.execute(prev.query, prev.values);
-    const next = await sqlHelper.selectLimit(table,null,{wr_reply: 0, wr_grp: wr_grp + 1});
+    const next = await sqlHelper.selectLimit(table,null,{wr_reply: 0, wr_use:1, wr_grp: wr_grp + 1});
     const [[nextResult]] = await db.execute(next.query, next.values);
     const prevNextInfo = {
       prev: prevResult ? prevResult : null,
