@@ -8,9 +8,9 @@ const upload = () => {
     storage: multer.diskStorage({
       destination: function (req, file, cb) {
         // console.log("req.files",file,  req.files);
-        const { table } = req.params;
-        if (!table) throw "테이블이 존재하지 않습니다";
-        const path = `upload/${table}/`;
+        const { bo_table } = req.params;
+        if (!bo_table) throw "테이블이 존재하지 않습니다";
+        const path = `upload/${bo_table}/`;
         const directory = fs.existsSync(path); //디렉토리 경로 입력
         if (!directory) {
           fs.mkdirSync(path, { recursive: true });

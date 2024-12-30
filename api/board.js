@@ -116,16 +116,17 @@ router.put("/:bo_table/edit", upload().any(), async (req, res) => {
 });
 
 //게시글 삭제*
-router.put("/:bo_table/:wr_id/:token", async (req, res) => {
-  const { bo_table, wr_id, token } = req.params;
+router.put("/:bo_table/:wr_id/:wr_grp/del", async (req, res) => {
+  const { bo_table, wr_id,wr_grp } = req.params;
+  const { token } = req.body;
   const member = await isMember(req);
   const checkToken = req.session.checkToken;
+  const ip = getIp(req);
   req.session.checkToken = null;
   const modifyMsg = await isModify(bo_table, member, null, checkToken, token);
   // async function isModify(bo_table, member, data, checkToken, token) { data.mb_id == 0
-
   if (modifyMsg) {return res.json({ err: modifyMsg });}
-  const result = await modelCall(boardController.del, bo_table,wr_id,member);
+  const result = await modelCall(boardController.del, bo_table,wr_id,wr_grp,member,ip);
   res.json(result);
 });
 
