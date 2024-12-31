@@ -61,7 +61,6 @@ const boardController = {
   },
   //게시글 추가 - 글쓰기*
   add: async (bo_table, row, req) => {
-    console.log('row>>>',row);
     //디비 안들어가는 것 지우기
     delete row.wrFiles;
 
@@ -476,7 +475,7 @@ const boardController = {
       // 썸네일 이미지 연결 - 게시물에 연관 파일을 붙인다.
       for (const row of rows) {
 
-        await boardController.addFiles(bo_table, row);
+        await boardController.addFiles(bo_table, row,host);
         await boardController.addTags(bo_table, row); // tags
         await boardController.addGoodFlag(bo_table, row, member);
         row.thumb = getImage(config, row, host);
@@ -496,7 +495,7 @@ const boardController = {
       const [rows] = await db.execute(query, values);
 
       for (const row of rows) {
-        await boardController.addFiles(bo_table, row);
+        await boardController.addFiles(bo_table, row,host);
         await boardController.addTags(bo_table, row); // tags
         await boardController.addGoodFlag(bo_table, row, member);
         row.thumb = getImage(config, row,host);
@@ -530,7 +529,7 @@ const boardController = {
       );
     }
 
-    await boardController.addFiles(bo_table, row); // file관련 item.wrImgs 본문내용, item.wrFiles 첨부파일
+    await boardController.addFiles(bo_table, row,host); // file관련 item.wrImgs 본문내용, item.wrFiles 첨부파일
     await boardController.addGoodFlag(bo_table, row, member); // good
     await boardController.addTags(bo_table, row); // tags
 
@@ -561,19 +560,19 @@ const boardController = {
 
     // 썸네일 이미지 연결 - 게시물에 연관 파일을 붙인다.
     for (const row of replys) {
-      await boardController.addFiles(bo_table, row);
+      await boardController.addFiles(bo_table, row,host);
       await boardController.addTags(bo_table, row); // tags
       row.thumb = getImage(config, row, host);
     }
 
     for (const row of views) {
-      await boardController.addFiles(bo_table, row);
+      await boardController.addFiles(bo_table, row,host);
       await boardController.addTags(bo_table, row); // tags
       row.thumb = getImage(config, row, host);
     }
 
     for (const row of goods) {
-      await boardController.addFiles(bo_table, row);
+      await boardController.addFiles(bo_table, row,host);
       await boardController.addTags(bo_table, row); // tags
       row.thumb = getImage(config, row, host);
     }
@@ -581,7 +580,7 @@ const boardController = {
   },
 
   //최근 게시물 가져오기에 파일 붙이기 //내부용*
-  addFiles: async function (table, row) {
+  addFiles: async function (table, row,host) {
     //파일테이블내역 불러오기
     cols = {f_field: `${TABLE.WRITE}${table}`,f_fieldname: row.wr_id};
     funcs = ["f_id","f_originalname","f_encoding","f_mimetype","f_destination","f_filename","f_path","f_size",];
@@ -594,13 +593,14 @@ const boardController = {
     if (files?.length <= 0) return;
 
     for (const file of files) {
-      const src = file.f_originalname; //파일이름
+      const src = file.f_filename; //파일이름
       const idx = src.lastIndexOf(".");
-      const filename = src.substring(0, idx + 1);
+      const filename = src.substring(0, idx);
 
       if (row.wr_content.indexOf(filename) < 0) {
         //없으면 첨부파일
         file.remove = false;
+        file.url = `${host}/${file.f_path}`; //프론트에서 다운로드용 url
         row.wrFiles.push(file);
       } else {
         row.wrImgs.push(file);
