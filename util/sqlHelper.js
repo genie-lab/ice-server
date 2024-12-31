@@ -189,5 +189,18 @@ const sqlHelper = {
     const sql = `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '${table}';`;
     return sql;
   },
+
+  //필드뽑음
+  selectIn(table, field, arr, cols=[]){
+    let query = `SELECT * FROM ${table} WHERE ${field} IN ({1})`;
+    const prepare = Array(arr.length).fill('?');
+    query = query.replace('{1}', prepare.join(', '));
+
+    //쿼리필드가 있으면 치환함
+    if(cols.length > 0){
+      query = query.replace('*', cols.join(','));
+    }
+    return { query, values:arr };
+  },
 };
 module.exports = sqlHelper;

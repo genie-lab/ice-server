@@ -157,7 +157,7 @@ router.get("/:bo_table/list", async (req, res) => {
       )
     );
   }
-  const result = await modelCall(boardController.list, bo_table,req.query,member);
+  const result = await modelCall(boardController.list, config,bo_table,req.query,member);
   res.json(result);
 });
 

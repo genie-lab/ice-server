@@ -1,25 +1,37 @@
 const router = require("express").Router();
 const searchController = require("./controller/searchController");
-const { modelCall } = require("../util/lib");
+const { modelCall, resData } = require("../util/lib");
+const STATUS = require("../util/STATUS");
+const moment = require("../util/moment");
 
-//서치전체 목록수
-router.get("/listCount", async (req, res) => {
-  const result = await modelCall(searchController.listCount, req);
+//tag 검색
+router.get("/", async (req, res) => {
+  const options = req.query;
+  console.log('options>>>>>>>>>>>>>',options);
+  const result = await modelCall(searchController.search, options);
   res.json(result);
 });
-//서치 목록, 전체 태그 목록,어드민등급 제외한 테이블 목록 가져오기
-router.get("/list", async (req, res) => {
-  const result = await modelCall(searchController.list, req);
-  res.json(result);
-});
-//서치 where절 목록 특정테이블,또는 전체에서 검색
-router.post("/listByWhere", async (req, res) => {
-  const result = await modelCall(searchController.listByWhere, req);
-  res.json(result);
-});
-//태그 목록 
+
+//tag 목록가져오기
 router.get("/tagList", async (req, res) => {
-  const result = await modelCall(searchController.tagList, req);
+  const result = await modelCall(searchController.tagList);
   res.json(result);
+});
+
+// search tag에서 리스트 불러오기
+router.get("/list", async (req, res) => {
+  const result = {};
+  result.tags = await modelCall(searchController.tagList);
+  result.boards = await modelCall(searchController.boardList);
+  const data = result;
+  // console.log("result", result);
+  res.json(
+    resData(
+      STATUS.S200.result,
+      STATUS.S200.resultDesc,
+      moment().format("YYYY-MM-DD HH:mm:ss"),
+      data
+    )
+  );
 });
 module.exports = router;

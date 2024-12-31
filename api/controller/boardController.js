@@ -444,8 +444,7 @@ const boardController = {
     return rowsCount;
   },
   //페이지 목록*
-  list: async function (bo_table, options, member) {
-
+  list: async function (config, bo_table, options, member) {
     if (!bo_table) {
       const data = { err: "테이블이 지정되지 않았습니다." };
       return resData(
@@ -476,14 +475,37 @@ const boardController = {
       });
       const { query, values } = await sqlHelper.selectLimit(table,options,cols,null,searchCols);
       const [rows] = await db.execute(query, values);
-      return rows;
-    } else {
-      const { query, values } = await sqlHelper.selectLimit(table,options,cols);
-      const [rows] = await db.execute(query, values);
+
+
+      // 썸네일 이미지 연결 - 게시물에 연관 파일을 붙인다.
       for (const row of rows) {
         await boardController.addFiles(bo_table, row);
+        await boardController.addTags(bo_table, row); // tags
         await boardController.addGoodFlag(bo_table, row, member);
+        row.thumb = getImage(config, row);
       }
+      const cnt = await sqlHelper.selectSimpleCount(table, options, cols)
+      const [[{ rowsCount }]] = await db.execute(cnt.query,cnt.values);
+
+      const data = {rowsCount,rows};
+      return {
+        status: STATUS.S200.result, //status
+        message: STATUS.S200.resultDesc, //message
+        resDate: moment().format("YYYY-MM-DD HH:mm:ss"),
+        data, //data
+      };
+    } else {
+      const { query, values } = await sqlHelper.selectLimit(table,options,cols);
+
+      const [rows] = await db.execute(query, values);
+
+      for (const row of rows) {
+        await boardController.addFiles(bo_table, row);
+        await boardController.addTags(bo_table, row); // tags
+        await boardController.addGoodFlag(bo_table, row, member);
+        row.thumb = getImage(config, row);
+      }
+
       const cnt = await sqlHelper.selectSimpleCount(table, null, cols)
       // const countQuery = `SELECT COUNT(*) AS count FROM ${table} ${where}`;
 
