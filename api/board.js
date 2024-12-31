@@ -62,6 +62,7 @@ router.get("/:bo_table/menuList", async (req, res) => {
 //게시글 추가*
 router.post("/:bo_table/add", upload().any(), async (req, res) => {
   const { bo_table } = req.params;
+  // console.log('req.files',req.files);
   const config = await modelCall(boardController.getConfig, bo_table);
   const grant = isGrant(req, config.bo_write_level);
   if (!grant) {
@@ -145,6 +146,7 @@ router.put("/:bo_table/:wr_id/:wr_grp/del", async (req, res) => {
 //게시물 목록을 가져옴*
 router.get("/:bo_table/list", async (req, res) => {
   const { bo_table } = req.params;
+  const host = `${req.protocol}://${req.headers.host}`;
   const member = await isMember(req);
   const config = await modelCall(boardController.getConfig, bo_table);
   const grant = isGrant(req, config.bo_list_level);
@@ -157,12 +159,13 @@ router.get("/:bo_table/list", async (req, res) => {
       )
     );
   }
-  const result = await modelCall(boardController.list, config,bo_table,req.query,member);
+  const result = await modelCall(boardController.list, config,bo_table,req.query,member,host);
   res.json(result);
 });
 
 //게시물 읽기 where절 목록*
 router.get("/:bo_table/:wr_id/listByWhere", async (req, res) => {
+  const host = `${req.protocol}://${req.headers.host}`;
   const { bo_table, wr_id } = req.params;
   const member = await isMember(req);
   const config = await modelCall(boardController.getConfig, bo_table);
@@ -170,7 +173,7 @@ router.get("/:bo_table/:wr_id/listByWhere", async (req, res) => {
   if (!grant) {
     return res.json({ err: "목록읽기 권한이 없습니다." });
   }
-  const result = await modelCall(boardController.getItem, bo_table,wr_id,member);
+  const result = await modelCall(boardController.getItem, bo_table,wr_id,member,host);
   res.json(result);
 });
 
@@ -191,8 +194,9 @@ router.post("/:bo_table/check/:wr_id", async (req, res) => {
 //최근 게시물 가져오기*
 router.get("/:bo_table/:limit/latest", async (req,res)=>{
   const {bo_table,limit} = req.params;
+  const host = `${req.protocol}://${req.headers.host}`;
   const config = await modelCall(boardController.getConfig, bo_table);
-  const result = await modelCall(boardController.latest, config,bo_table,limit);
+  const result = await modelCall(boardController.latest, config,bo_table,limit, host);
   res.json(result)
 })
 //게시물 관련 목록을 가져옴 // 이전글/다음글/관련글*

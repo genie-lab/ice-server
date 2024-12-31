@@ -61,7 +61,7 @@ const boardController = {
   },
   //게시글 추가 - 글쓰기*
   add: async (bo_table, row, req) => {
-
+    console.log('row>>>',row);
     //디비 안들어가는 것 지우기
     delete row.wrFiles;
 
@@ -124,13 +124,8 @@ const boardController = {
     const files = req?.files;
     if (files) {
       for (let i = 0; i < files.length; i++) {
-        files[i].originalname = Buffer.from(
-          files[i].originalname,
-          "ascii"
-        ).toString("utf8");
-        files[i].fieldname = Buffer.from(files[i].fieldname, "ascii").toString(
-          "utf8"
-        );
+        files[i].originalname = Buffer.from(files[i].originalname,"ascii").toString("utf8");
+        files[i].fieldname = Buffer.from(files[i].fieldname, "ascii").toString("utf8");
         // url만들기
         const { destination, filename } = files[i];
         const url = `${req?.protocol}://${req?.headers?.host}/${destination}${filename}`;
@@ -444,7 +439,8 @@ const boardController = {
     return rowsCount;
   },
   //페이지 목록*
-  list: async function (config, bo_table, options, member) {
+  list: async function (config, bo_table, options, member,host) {
+
     if (!bo_table) {
       const data = { err: "테이블이 지정되지 않았습니다." };
       return resData(
@@ -479,10 +475,11 @@ const boardController = {
 
       // 썸네일 이미지 연결 - 게시물에 연관 파일을 붙인다.
       for (const row of rows) {
+
         await boardController.addFiles(bo_table, row);
         await boardController.addTags(bo_table, row); // tags
         await boardController.addGoodFlag(bo_table, row, member);
-        row.thumb = getImage(config, row);
+        row.thumb = getImage(config, row, host);
       }
       const cnt = await sqlHelper.selectSimpleCount(table, options, cols)
       const [[{ rowsCount }]] = await db.execute(cnt.query,cnt.values);
@@ -496,21 +493,19 @@ const boardController = {
       };
     } else {
       const { query, values } = await sqlHelper.selectLimit(table,options,cols);
-
       const [rows] = await db.execute(query, values);
 
       for (const row of rows) {
         await boardController.addFiles(bo_table, row);
         await boardController.addTags(bo_table, row); // tags
         await boardController.addGoodFlag(bo_table, row, member);
-        row.thumb = getImage(config, row);
+        row.thumb = getImage(config, row,host);
       }
 
       const cnt = await sqlHelper.selectSimpleCount(table, null, cols)
       // const countQuery = `SELECT COUNT(*) AS count FROM ${table} ${where}`;
 
       const [[{ rowsCount }]] = await db.execute(cnt.query,cnt.values);
-
       const data = {rowsCount,rows};
       return {
         status: STATUS.S200.result, //status
@@ -521,7 +516,7 @@ const boardController = {
     }
   },
   //게시물 가져오기*
-  getItem: async function (bo_table, id, member) {
+  getItem: async function (bo_table, id, member,host) {
     const table = `${TABLE.VIEW}${bo_table}`;
     const wr_id = Number(id);
     const sql = await sqlHelper.selectLimit(table, null, { wr_id });
@@ -554,7 +549,7 @@ const boardController = {
   },
 
   //최근 게시물 가져오기*
-  latest: async function (config, bo_table, limit) {
+  latest: async function (config, bo_table, limit,host) {
     const table = `${TABLE.VIEW}${bo_table}`;
     const sql = `select * from ${table} WHERE wr_reply=0 and wr_use=1 ` // 부모글
     const manyReplys = sql + ` ORDER BY replys DESC, wr_update_at DESC LIMIT ${limit}`; // 답글 또는 부모글
@@ -568,19 +563,19 @@ const boardController = {
     for (const row of replys) {
       await boardController.addFiles(bo_table, row);
       await boardController.addTags(bo_table, row); // tags
-      row.thumb = getImage(config, row);
+      row.thumb = getImage(config, row, host);
     }
 
     for (const row of views) {
       await boardController.addFiles(bo_table, row);
       await boardController.addTags(bo_table, row); // tags
-      row.thumb = getImage(config, row);
+      row.thumb = getImage(config, row, host);
     }
 
     for (const row of goods) {
       await boardController.addFiles(bo_table, row);
       await boardController.addTags(bo_table, row); // tags
-      row.thumb = getImage(config, row);
+      row.thumb = getImage(config, row, host);
     }
     return {table:bo_table,replys,views,goods}; //게시판이름, 부모 또는 답글5,조회수5,좋아요5
   },
@@ -588,36 +583,21 @@ const boardController = {
   //최근 게시물 가져오기에 파일 붙이기 //내부용*
   addFiles: async function (table, row) {
     //파일테이블내역 불러오기
-    cols = {
-      f_field: table,
-      f_fieldname: row.wr_id,
-    };
-    funcs = [
-      "f_id",
-      "f_originalname",
-      "f_encoding",
-      "f_mimetype",
-      "f_destination",
-      "f_filename",
-      "f_path",
-      "f_size",
-    ];
-    const { query, values } = await sqlHelper.selectLimit(
-      TABLE.FILES,
-      null,
-      cols,
-      funcs
-    );
+    cols = {f_field: `${TABLE.WRITE}${table}`,f_fieldname: row.wr_id};
+    funcs = ["f_id","f_originalname","f_encoding","f_mimetype","f_destination","f_filename","f_path","f_size",];
+    const { query, values } = await sqlHelper.selectLimit(TABLE.FILES,null,cols,funcs);
     const [files] = await db.execute(query, values);
+
     row.wrImgs = []; //본문에 첨부된 이미지
     row.wrFiles = []; //첨부파일
 
     if (files?.length <= 0) return;
 
-    for (const file in files) {
+    for (const file of files) {
       const src = file.f_originalname; //파일이름
-      const idx = src.lastindexOf(".");
+      const idx = src.lastIndexOf(".");
       const filename = src.substring(0, idx + 1);
+
       if (row.wr_content.indexOf(filename) < 0) {
         //없으면 첨부파일
         file.remove = false;

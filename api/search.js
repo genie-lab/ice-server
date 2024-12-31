@@ -7,7 +7,6 @@ const moment = require("../util/moment");
 //tag 검색
 router.get("/", async (req, res) => {
   const options = req.query;
-  console.log('options>>>>>>>>>>>>>',options);
   const result = await modelCall(searchController.search, options);
   res.json(result);
 });
