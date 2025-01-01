@@ -183,11 +183,12 @@ const boardController = {
 
     //예전 본문 삽입이미지 삭제하고 DB 업데이트
     const wrImgs = JSON.parse(row.wrImgs);
+
     delete row.wrImgs;
-    if (wrImgs.length > 0) {
+    if (wrImgs?.length > 0) {
       for (let i = 0; i < wrImgs.length; i++) {
         //새로업데이트된 내용에 포함되지않았을때  //"bf_src":"IJ4z1717671828775.jpg"
-        if (row.wr_content.indexOf(wrImgs[i].f_filename) <= -1) {
+        if (row.wr_content.indexOf(wrImgs[i].f_filename) < 0) {
           //파일지우기만함
           await boardController.removeFile(bo_table, wrImgs[i]);
         }
@@ -198,24 +199,19 @@ const boardController = {
     //파일추가
     let wr_content = row.wr_content;
     const files = req?.files;
+
     if (files) {
       for (let i = 0; i < files.length; i++) {
-        files[i].originalname = Buffer.from(
-          files[i].originalname,
-          "ascii"
-        ).toString("utf8");
-        files[i].fieldname = Buffer.from(files[i].fieldname, "ascii").toString(
-          "utf8"
-        );
+        files[i].originalname = Buffer.from(files[i].originalname,"ascii").toString("utf8");
+        files[i].fieldname = Buffer.from(files[i].fieldname, "ascii").toString("utf8");
         // url만들기
         const { destination, filename } = files[i];
         const url = `${req?.protocol}://${req?.headers?.host}/${destination}${filename}`;
 
-        if (insertDone?.affectedRows == 1) {
           //files에 저장하기
           const filePayload = {
-            f_field: `${TABLE.WRITE}${table}`,
-            f_fieldname: insertDone.insertId,
+            f_field: table,
+            f_fieldname: row.wr_id,
             f_originalname: files[i].originalname,
             f_encoding: files[i].encoding,
             f_mimetype: files[i].mimetype,
@@ -224,12 +220,11 @@ const boardController = {
             f_path: files[i].path,
             f_size: files[i].size,
           };
-          const { query, values } = await sqlHelper.insert(
-            TABLE.FILES,
-            filePayload
-          );
+
+          const { query, values } = await sqlHelper.insert(TABLE.FILES,filePayload);
+
           await db.execute(query, values);
-        }
+
 
         //blob링크를 서버쪽링크로 교체
         const fieldname = files[i].fieldname;
@@ -240,11 +235,7 @@ const boardController = {
         }
       }
       //이미지 링크교체된것 최종 게시판테이블 업데이트
-      const updateQuery = await sqlHelper.edit(
-        table,
-        { wr_content },
-        { wr_id }
-      );
+      const updateQuery = await sqlHelper.edit(table,{ wr_content },{ wr_id:row.wr_id });
       await db.execute(updateQuery.query, updateQuery.values);
     }
     delete row.wr_create_at;
@@ -268,8 +259,7 @@ const boardController = {
     //내용 수정
     //이미지 링크교체된것 최종 게시판테이블 업데이트
     row.wr_content = wr_content;
-
-    const sql = await sqlHelper.edit(table, row, { wr_id });
+    const sql = await sqlHelper.edit(table, row, { wr_id:row.wr_id });
     const [rows] = await db.execute(sql.query, sql.values);
 
     if (rows.affectedRows == 1) {
@@ -282,11 +272,12 @@ const boardController = {
       );
     }
   },
+
   //수정시 게시글 파일삭제 //내부용
   removeFile: async (table, file) => {
     const { f_id, f_filename } = file;
-    const filePath = `${UPLOAD_PATH}/${table}/${f_filename}`; //upload/test/ahSx1733907080383.jpg
-    const cachePath = `${UPLOAD_PATH}/${table}/.cache`; // 섬네일
+    const filePath = `${UPLOAD_PATH}${table}/${file.f_filename}`; //upload/test/ahSx1733907080383.jpg
+    const cachePath = `${UPLOAD_PATH}${table}/.cache`; // 섬네일
 
     // 파일삭제
     if (fs.existsSync(filePath)) {
@@ -305,8 +296,10 @@ const boardController = {
         }
       }
     }
+
+
     // db 삭제
-    const sql = sqlHelper.del(TABLE.FILES, { f_id });
+    const sql = await sqlHelper.del(TABLE.FILES, { f_id });
     await db.execute(sql.query, sql.values);
   },
   //수정시 게시글 삭제 //내부용
@@ -528,7 +521,6 @@ const boardController = {
         moment().format("YYYY-MM-DD HH:mm:ss")
       );
     }
-
     await boardController.addFiles(bo_table, row,host); // file관련 item.wrImgs 본문내용, item.wrFiles 첨부파일
     await boardController.addGoodFlag(bo_table, row, member); // good
     await boardController.addTags(bo_table, row); // tags
@@ -581,6 +573,7 @@ const boardController = {
 
   //최근 게시물 가져오기에 파일 붙이기 //내부용*
   addFiles: async function (table, row,host) {
+
     //파일테이블내역 불러오기
     cols = {f_field: `${TABLE.WRITE}${table}`,f_fieldname: row.wr_id};
     funcs = ["f_id","f_originalname","f_encoding","f_mimetype","f_destination","f_filename","f_path","f_size",];
@@ -591,7 +584,6 @@ const boardController = {
     row.wrFiles = []; //첨부파일
 
     if (files?.length <= 0) return;
-
     for (const file of files) {
       const src = file.f_filename; //파일이름
       const idx = src.lastIndexOf(".");
