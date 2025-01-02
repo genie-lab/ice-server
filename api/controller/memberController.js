@@ -270,6 +270,7 @@ const memberController = {
     // const reqQuery = req._parsedUrl.search; //req.query는 url과 같이 req.param은 객체    `?rowsPerPage=50&page=1&sortBy=b_id&type=desc&sortBy=b_craete_at&type=desc`;
     // const options = qs.parse(reqQuery, { ignoreQueryPrefix: true }); //?삭제
     const options = req.query;
+
     if (options?.search) {
       const colnameSql = await sqlHelper.colnames(TABLE.MEMBER);
       const [colnames] = await db.execute(colnameSql);
@@ -278,16 +279,15 @@ const memberController = {
       });
 
       const countQuery = await sqlHelper.selectSimpleCount(TABLE.MEMBER,null,null,searchCols);
-      const [[{ rowsCount }]] = await db.execute(countQuery);
-
-      const { query } = await sqlHelper.selectLimit(TABLE.MEMBER,options,null,null,searchCols);
-      const [rows] = await db.execute(query);
+      const [[{ rowsCount }]] = await db.execute(countQuery.query, countQuery.values);
+      const { query,values } = await sqlHelper.selectLimit(TABLE.MEMBER,options,null,null,searchCols);
+      const [rows] = await db.execute(query,values);
       return { rows, rowsCount: rowsCount };
     } else {
       const countQuery = await sqlHelper.selectSimpleCount(TABLE.MEMBER);
-      const [[{ rowsCount }]] = await db.execute(countQuery);
-      const { query } = await sqlHelper.selectLimit(TABLE.MEMBER, options);
-      const [rows] = await db.execute(query);
+      const [[{ rowsCount }]] = await db.execute(countQuery.query, countQuery.values);
+      const { query,values } = await sqlHelper.selectLimit(TABLE.MEMBER, options);
+      const [rows] = await db.execute(query,values);
       return { rows, rowsCount };
     }
   },
