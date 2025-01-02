@@ -12,36 +12,20 @@ const qs = require("qs");
 const configController = {
   //config 구성하기 - 전체가져오기
   initConfig: async (req) => {
-    const obj = {
-      ...$config.server,
-      ...$config.client,
-    };
+    const obj = {...$config.server,...$config.client,};
     if (obj == null) {
       configController.load();
-      const config = {
-        ...$config.server,
-        ...$config.client,
-      };
-
+      const config = {...$config.server,...$config.client,};
       return config;
     }
     const data = obj;
-
     return data;
   },
   //설정로드
   load: async () => {
-    const { query, values } = await sqlHelper.selectLimit(
-      TABLE.CONFIG,
-      null,
-      null,
-      ["cf_key", "cf_val", "cf_client", "cf_type"]
-    );
+    const { query, values } = await sqlHelper.selectLimit(TABLE.CONFIG,null,null,["cf_key", "cf_val", "cf_client", "cf_type"]);
     const [rows] = await db.execute(query);
-    global.$config = {
-      server: {},
-      client: {},
-    };
+    global.$config = {server: {},client: {},};
 
     for (const row of rows) {
       configController.setConfigItem(row, true);
@@ -52,9 +36,7 @@ const configController = {
     configController.clearConfigItem(item.cf_key, isLoad); // 값만 지움
 
     //json parsing
-    if (item.cf_type == "Json") {
-      item.cf_val = JSON.parse(item.cf_val);
-    }
+    if (item.cf_type == "Json") {item.cf_val = JSON.parse(item.cf_val);}
     if (item.cf_client) {
       $config.client[item.cf_key] = item.cf_val;
     } else {
@@ -62,10 +44,7 @@ const configController = {
     }
     //초기로드가 아니면 메시지를 보낸다
     if (!isLoad) {
-      process.send({
-        type: "config:update",
-        data: item,
-      });
+      process.send({type: "config:update",data: item,});
     }
   },
   //기존 지울값 정리
@@ -74,10 +53,7 @@ const configController = {
     delete $config.client[cf_key]; // 설정값 삭제
 
     if (!isLoad) {
-      process.send({
-        type: "config:remove",
-        data: cf_key,
-      });
+      process.send({type: "config:remove",data: cf_key,});
     }
   },
 
@@ -85,36 +61,20 @@ const configController = {
 
   //재기동
   restart: async (req) => {
-    // if (!isGrant(req, LV.SUPER)) {
-    //   const data = { err: "최고관리자만 서버를 재시작 할 수 있습니다" };
-    //   return resData(
-    //     STATUS.E200.result, //status
-    //     STATUS.E200.resultDesc, //message
-    //     moment().format("YYYY-MM-DD HH:mm:ss"),
-    //     data //data
-    //   );
-    // }
-    const result = process.send({
-      type: "config:restart",
-      data: "restart",
-    });
-    // console.log(result);
+    if (!isGrant(req, LV.SUPER)) {
+      const data = { err: "최고관리자만 서버를 재시작 할 수 있습니다" };
+      return resData(STATUS.E200.result, STATUS.E200.resultDesc,moment().format("YYYY-MM-DD HH:mm:ss"),data);
+    }
+    const result = process.send({type: "config:restart",data: "restart",});
     return result;
   },
   //키,값 중복검사
   duplCheck: async (req) => {
     const field = req.params.field;
     const value = req.params.value;
-
-    const payload = {
-      [field]: value,
-    };
-
-    const sql = await sqlHelper.selectLimit(TABLE.CONFIG, null, payload, [
-      "COUNT(*) AS count",
-    ]);
+    const payload = {[field]: value,};
+    const sql = await sqlHelper.selectLimit(TABLE.CONFIG, null, payload, ["COUNT(*) AS count",]);
     const [[{ count }]] = await db.execute(sql.query, sql.values);
-    // console.log(count);
     return count;
   },
   //클라이언트/서버리스트 가져오기
@@ -123,29 +83,16 @@ const configController = {
 
     if (Boolean(all)) {
       //관리자
-      // if (!req.user) {
-      //   const data = { err: "세션종료. 다시 로그인해주세요" };
-      //   return resData(
-      //     STATUS.E200.result, //status
-      //     STATUS.E200.resultDesc, //message
-      //     moment().format("YYYY-MM-DD HH:mm:ss"),
-      //     data //data
-      //   );
-      // }
-      // if (!isGrant(req, LV.ADMIN)) {
-      //   const data = { err: "관리자 설정 목록 권한이 없습니다" };
-      //   return resData(
-      //     STATUS.E200.result, //status
-      //     STATUS.E200.resultDesc, //message
-      //     moment().format("YYYY-MM-DD HH:mm:ss"),
-      //     data //data
-      //   );
-      // }
+      if (!req.user) {
+        const data = { err: "세션종료. 다시 로그인해주세요" };
+        return resData(STATUS.E200.result, STATUS.E200.resultDesc,moment().format("YYYY-MM-DD HH:mm:ss"),data);
+      }
+      if (!isGrant(req, LV.ADMIN)) {
+        const data = { err: "관리자 설정 목록 권한이 없습니다" };
+        return resData(STATUS.E200.result, STATUS.E200.resultDesc,moment().format("YYYY-MM-DD HH:mm:ss"),data);
+      }
 
-      const sortBy = {
-        cf_group: true,
-        cf_sort: true,
-      };
+      const sortBy = {cf_group: true,cf_sort: true,};
 
       //정렬규칙 추가
       let sortSql = "";
@@ -153,7 +100,6 @@ const configController = {
         let sort = [];
         const keys = Object.keys(sortBy);
         for (const key of keys) {
-          // `orderby cf_group ASC`;
           sort.push(key + (sortBy[key] ? " ASC " : " DESC "));
         }
         if (sortBy) {
@@ -215,10 +161,8 @@ const configController = {
   add: async (req) => {
     const data = req.body;
     const sql = await sqlHelper.insert(TABLE.CONFIG, data);
-    // console.log(sql);
     const [row] = await db.execute(sql.query, sql.values);
     console.log(row.insertId);
-    // data.cf_id = row.insertId;
     configController.setConfigItem(data); // 설정다시 로드
     return data;
   },
@@ -244,19 +188,12 @@ const configController = {
   },
   //삭제
   del: async (req) => {
-    // if (!isGrant(req, LV.SUPER)) {
-    //   const data = { err: "최고관리자만 삭제가 가능합니다" };
-    //   return resData(
-    //     STATUS.E200.result, //status
-    //     STATUS.E200.resultDesc, //message
-    //     moment().format("YYYY-MM-DD HH:mm:ss"),
-    //     data //data
-    //   );
-    // }
+    if (!isGrant(req, LV.SUPER)) {
+      const data = { err: "최고관리자만 삭제가 가능합니다" };
+      return resData(STATUS.E200.result, STATUS.E200.resultDesc,moment().format("YYYY-MM-DD HH:mm:ss"),data);
+    }
     const cols = req.params;
-    // console.log(cols);
     const { query, values } = await sqlHelper.del(TABLE.CONFIG, cols);
-    // console.log(query);
     const [row] = await db.execute(query, values);
     configController.clearConfigItem(cols.cf_key); // 설정다시 로드
     return row;
@@ -264,35 +201,36 @@ const configController = {
   //클라이언트/서버리스트 가져오기
   menu: async (req) => {
     //관리자
-    // if (!req.user) {
-    //   const data = { err: "세션종료. 다시 로그인해주세요" };
-    //   return resData(
-    //     STATUS.E200.result, //status
-    //     STATUS.E200.resultDesc, //message
-    //     moment().format("YYYY-MM-DD HH:mm:ss"),
-    //     data //data
-    //   );
-    // }
-    // if (!isGrant(req, LV.ADMIN)) {
-    //   const data = { err: "관리자 설정 목록 권한이 없습니다" };
-    //   return resData(
-    //     STATUS.E200.result, //status
-    //     STATUS.E200.resultDesc, //message
-    //     moment().format("YYYY-MM-DD HH:mm:ss"),
-    //     data //data
-    //   );
-    // }
+    if (!req.user) {
+      const data = { err: "세션종료. 다시 로그인해주세요" };
+      return resData(STATUS.E200.result, STATUS.E200.resultDesc,moment().format("YYYY-MM-DD HH:mm:ss"),data);
+    }
+    if (!isGrant(req, LV.ADMIN)) {
+      const data = { err: "관리자 설정 목록 권한이 없습니다" };
+      return resData(STATUS.E200.result, STATUS.E200.resultDesc,moment().format("YYYY-MM-DD HH:mm:ss"),data);
+    }
 
     //페이지당 데이터
-    const cols = {
-      cf_key: "menu",
-    };
-    const { query, values } = await sqlHelper.selectLimit(
-      TABLE.CONFIG,
-      null,
-      cols
-    );
-    // console.log(query, values);
+    const cols = {cf_key: "menu",};
+    const { query, values } = await sqlHelper.selectLimit(TABLE.CONFIG,null,cols);
+    const [row] = await db.execute(query, values);
+    return row;
+  },
+  //클라이언트/상점옵션 가져오기
+  storeOption: async (req) => {
+    //관리자
+    if (!req.user) {
+      const data = { err: "세션종료. 다시 로그인해주세요" };
+      return resData(STATUS.E200.result, STATUS.E200.resultDesc,moment().format("YYYY-MM-DD HH:mm:ss"),data);
+    }
+    if (!isGrant(req, LV.ADMIN)) {
+      const data = { err: "관리자 설정 목록 권한이 없습니다" };
+      return resData(STATUS.E200.result, STATUS.E200.resultDesc,moment().format("YYYY-MM-DD HH:mm:ss"),data);
+    }
+
+    //페이지당 데이터
+    const cols = {cf_key: "storeOption"};
+    const { query, values } = await sqlHelper.selectLimit(TABLE.CONFIG,null,cols);
     const [row] = await db.execute(query, values);
     return row;
   },

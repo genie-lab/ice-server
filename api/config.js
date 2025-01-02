@@ -47,5 +47,10 @@ router.get("/menu", async (req, res) => {
   const result = await modelCall(configController.menu, req);
   res.json(result);
 });
+//상점옵션 가져오기
+router.get("/storeOption", async (req, res) => {
+  const result = await modelCall(configController.storeOption, req);
+  res.json(result);
+});
 
 module.exports = router;
