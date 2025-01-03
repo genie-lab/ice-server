@@ -19,12 +19,18 @@ const TABLE = {
   FILES: "files",
   POPUP: "popup",
   MAILER:'mailer',
-  
+
   BOARD: "board",
   BOARD_GOOD: "board_good",
   BOARD_TAGS: "board_tags",
   WRITE: "write_",
   VIEW: "view_",
+
+  STORE: "store",
+  STORE_TAGS: "store_tags",
+  VIP: "vip_",
+  VIEW_VIP: "view_vip_",
+  STORE_INFO: "store_info",
 
 };
 const DATABASE = {
