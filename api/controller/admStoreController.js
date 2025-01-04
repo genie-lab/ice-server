@@ -77,14 +77,13 @@ const admStoreController = {
     // 그룹생성
     const grp = await sqlHelper.selectLimit(TABLE.STORE,null,null,['max(st_group) as cnt']);
     const [[{cnt}]] = await db.execute(grp.query,grp.values);
-
+    const st_group =  (cnt == null || cnt == undefined) ? 1 : cnt + 1;
     const payload = {
-      st_group: (cnt == null || cnt == undefined) ? 1 : cnt + 1,
+      st_group: st_group,
       ...data,
       st_create_at: moment().format("YYYY-MM-DD HH:mm:ss"),
       st_update_at: moment().format("YYYY-MM-DD HH:mm:ss"),
     };
-
 
     const { query, values } = await sqlHelper.insert(TABLE.STORE, payload);
     const [insertDone] = await db.execute(query, values);
@@ -92,6 +91,16 @@ const admStoreController = {
     //링크파일 업로드폴더
     fs.mkdirSync(`${UPLOAD_PATH}/${data.st_table}`, { recursive: true });
     fs.chmodSync(`${UPLOAD_PATH}/${data.st_table}`, 0o707);
+
+    const stInfoPayload={
+      in_group:st_group, in_table:data.st_table, in_items:[],
+      in_create_at: moment().format("YYYY-MM-DD HH:mm:ss"),
+      in_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
+      in_ip: getIp(req),
+      mb_id:req.user[0].mb_id
+    }
+    const stInfo = await sqlHelper.insert(TABLE.STORE_INFO,stInfoPayload)
+    await db.execute(stInfo.query,stInfo.values)
 
     return insertDone;
 
@@ -188,11 +197,21 @@ const admStoreController = {
     const payload = {
       st_use: 0,
       st_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
-      st_ip: reqIp(req),
+      st_ip: getIp(req),
     };
     const { query, values } = await sqlHelper.edit(TABLE.STORE, payload, {st_table});
-    const [delDone] = await db.execute(query, values);
-    return delDone;
+    await db.execute(query, values);
+
+    const stInfoPayload={
+      in_use: 0,
+      in_create_at: moment().format("YYYY-MM-DD HH:mm:ss"),
+      in_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
+      in_ip: getIp(req),
+      mb_id:req.user[0].mb_id
+    }
+    const stInfo = await sqlHelper.edit(TABLE.STORE_INFO, stInfoPayload, {in_table:st_table});
+    const [stInfoDelDone] = await db.execute(stInfo.query, stInfo.values);
+    return stInfoDelDone;
   },
   //수정복구 put
   restore: async function (req) {
@@ -201,11 +220,21 @@ const admStoreController = {
     const payload = {
       st_use: 1,
       st_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
-      st_ip: reqIp(req),
+      st_ip: getIp(req),
     };
     const { query, values } = await sqlHelper.edit(TABLE.STORE, payload, {st_table});
-    const [editDone] = await db.execute(query, values);
-    return editDone;
+    await db.execute(query, values);
+
+    const stInfoPayload={
+      in_use: 1,
+      in_create_at: moment().format("YYYY-MM-DD HH:mm:ss"),
+      in_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
+      in_ip: getIp(req),
+      mb_id:req.user[0].mb_id
+    }
+    const stInfo = await sqlHelper.edit(TABLE.STORE_INFO, stInfoPayload, {in_table:st_table});
+    const [stInfoEditDone] = await db.execute(stInfo.query, stInfo.values);
+    return stInfoEditDone;
   },
 };
 module.exports = admStoreController;

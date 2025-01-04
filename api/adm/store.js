@@ -9,7 +9,6 @@ router.get("/listCount", async (req, res) => {
 });
 //페이지 목록
 router.get("/list", async (req, res) => {
-  console.log('list>>>');
   const result = await modelCall(admStoreController.list, req);
   res.json(result);
 });
