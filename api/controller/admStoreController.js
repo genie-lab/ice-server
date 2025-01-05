@@ -93,7 +93,7 @@ const admStoreController = {
     fs.chmodSync(`${UPLOAD_PATH}/${data.st_table}`, 0o707);
 
     const stInfoPayload={
-      in_group:st_group, in_table:data.st_table, in_items:[],
+      in_group:st_group, in_table:data.st_table, in_title:data.st_title, in_items:[],
       in_create_at: moment().format("YYYY-MM-DD HH:mm:ss"),
       in_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
       in_ip: getIp(req),
@@ -101,7 +101,7 @@ const admStoreController = {
     }
     const stInfo = await sqlHelper.insert(TABLE.STORE_INFO,stInfoPayload)
     await db.execute(stInfo.query,stInfo.values)
-
+    
     return insertDone;
 
   },
