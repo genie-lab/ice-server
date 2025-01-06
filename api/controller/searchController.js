@@ -23,16 +23,14 @@ const searchController = {
   //서치 where절 목록 특정테이블,또는 전체에서 검색
   listByWhere: async function (req) {
     const cols = req.body;
-    const options = {
-      rowsPerPage: "50",
-      page: "1",
-      sortBy: ["s_update_at"],
-      type: ["desc"],
-    };
+    // const options = {
+    //   rowsPerPage: "50",
+    //   page: "1",
+    // };
 
     const { query, values } = await sqlHelper.selectLimit(
       TABLE.BOARD_TAGS,
-      options,
+      null, // options,
       cols
     );
     const [rows] = await db.execute(query, values);

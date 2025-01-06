@@ -4,14 +4,13 @@ const STATUS = require("../../util/STATUS");
 
 const sqlHelper = require("../../util/sqlHelper");
 const qs = require("qs");
-const { ip, ipv6, mac } = require("address");
 const moment = require("../../util/moment");
 const { LV, isGrant } = require("../../util/level");
 const fs = require("fs");
 const path = require("path");
 const jwt = require("../../plugins/jwt");
-const searchController = require("./searchController");
-const { getFlag } = require("./goodController");
+const storeSearchController = require("./storeSearchController");
+const { getFlag } = require("./storeGoodController");
 const getSummary = require("../../util/getSummary");
 const getImage = require("../../util/getImage");
 const { getIp, isEmpty, resData } = require("../../util/lib");
@@ -19,16 +18,12 @@ const randToken = require("rand-token");
 
 const storeController = {
   //테이블 설정정보가져오기 //내부용*
-  getConfig: async (bo_table) => {
-    const cols = { bo_table: bo_table, bo_use: 1 };
-    const { query, values } = await sqlHelper.selectLimit(
-      TABLE.BOARD,
-      null,
-      cols
-    );
+  getConfig: async (st_table) => {
+    const cols = { st_table: st_table, st_use: 1 };
+    const { query, values } = await sqlHelper.selectLimit(TABLE.STORE,null,cols);
     const [[row]] = await db.execute(query, values);
     if (!row) {
-      const data = { err: `${bo_table} 게시판이 없습니다` };
+      const data = { err: `${st_table} 게시판이 없습니다` };
       return resData(
         STATUS.E200.result, //status
         STATUS.E200.resultDesc, //message
@@ -37,36 +32,36 @@ const storeController = {
       );
     }
     try {
-      row.bo_category = JSON.parse(row.bo_category);
-      row.wr_fields = JSON.parse(row.wr_fields);
-      row.bo_sort = JSON.parse(row.bo_sort);
+      row.st_category = JSON.parse(row.st_category);
+      row.vi_fields = JSON.parse(row.vi_fields);
+      row.st_sort = JSON.parse(row.st_sort);
     } catch (e) {}
 
     return row;
   },
   //전체 카테고리들 get*
-  menuList: async function (config, bo_table) {
-    const table = `${TABLE.VIEW_VIP}${bo_table}`;
+  menuList: async function (config, st_table) {
+    const table = `${TABLE.VIEW_VIP}${st_table}`;
     const options = {};
     options.sortBy = [];
     options.type = [];
-    for (const sort of config.bo_sort) {
+    for (const sort of config.st_sort) {
       options.sortBy.push(sort.by);
       options.type.push(sort.desc);
     }
-    const cols = ["wr_id", "wr_parent", "wr_title", "wr_category"];
+    const cols = ["vi_id", "vi_parent", "vi_title", "vi_category"];
     const { query, values } = await sqlHelper.selectLimit(`${TABLE.VIEW_VIP}${table}`,options,cols);
     const [rows] = await db.execute(query, values);
     return rows;
   },
   //게시글 추가 - 글쓰기*
-  add: async (bo_table, row, req) => {
+  add: async (st_table, row, req) => {
     //디비 안들어가는 것 지우기
     delete row.wrFiles;
 
     //테이블
-    const table = `${TABLE.VIEW_VIP}${bo_table}`;
-    row.wr_summary = getSummary(row.wr_content, 250);
+    const table = `${TABLE.VIEW_VIP}${st_table}`;
+    row.vi_summary = getSummary(row.vi_content, 250);
 
     //검색태그
     const wrTags = row.wrTags;
@@ -74,28 +69,28 @@ const storeController = {
 
     //계층형 그룹
     let sql;
-    if (row.wr_parent == 0) {
+    if (row.vi_parent == 0) {
       // 새글
-      sql = `SELECT max(wr_grp) AS wr_grp FROM ${table}`; // 글쓰기 그룹을 가져옴
-      let wr_grp = (await db.execute(sql))[0][0].wr_grp; //
-      row.wr_grp = wr_grp ? wr_grp + 1 : 1; // 그룹 null이면 1
-      row.wr_order = 0; // 순서
-      row.wr_dep = 0; // 깊이
+      sql = `SELECT max(vi_grp) AS vi_grp FROM ${table}`; // 글쓰기 그룹을 가져옴
+      let vi_grp = (await db.execute(sql))[0][0].vi_grp; //
+      row.vi_grp = vi_grp ? vi_grp + 1 : 1; // 그룹 null이면 1
+      row.vi_order = 0; // 순서
+      row.vi_dep = 0; // 깊이
     } else {
       // 답글
-      sql = `SELECT wr_grp, wr_order, wr_dep FROM ${table} WHERE wr_id=${row.wr_parent}`;
+      sql = `SELECT vi_grp, vi_order, vi_dep FROM ${table} WHERE vi_id=${row.vi_parent}`;
       const [parent] = (await db.execute(sql))[0];
-      row.wr_grp = parent.wr_grp;
-      row.wr_order = parent.wr_order + 1;
-      row.wr_dep = parent.wr_dep + 1;
-      const uSql = `UPDATE ${table} SET wr_order = wr_order + 1
-					WHERE wr_reply=0 AND wr_grp=${parent.wr_grp} AND wr_order >= ${row.wr_order}`;
+      row.vi_grp = parent.vi_grp;
+      row.vi_order = parent.vi_order + 1;
+      row.vi_dep = parent.vi_dep + 1;
+      const uSql = `UPDATE ${table} SET vi_order = vi_order + 1
+					WHERE vi_reply=0 AND vi_grp=${parent.vi_grp} AND vi_order >= ${row.vi_order}`;
       await db.execute(uSql);
     }
 
     //password 암호화
-    if (row.wr_password) {
-      row.wr_password = await jwt.generatePassword(row.wr_password);
+    if (row.vi_password) {
+      row.vi_password = await jwt.generatePassword(row.vi_password);
     }
 
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
@@ -104,22 +99,22 @@ const storeController = {
 
     const payload = {
       ...row,
-      wr_create_at: at,
-      wr_update_at: at,
-      wr_ip: ip,
+      vi_create_at: at,
+      vi_update_at: at,
+      vi_ip: ip,
     };
 
     const { query, values } = await sqlHelper.insert(`${table}`,payload);
     const [insertDone] = await db.execute(query, values);
-    const wr_id = insertDone.insertId; // auto increment id
+    const vi_id = insertDone.insertId; // auto increment id
 
     //태그등록
     if (wrTags?.length > 0) {
-      await searchController.tagAdd(bo_table, wr_id, wrTags);
+      await storeSearchController.tagAdd(st_table, vi_id, wrTags);
     }
 
     //파일추가
-    let wr_content = row.wr_content;
+    let vi_content = row.vi_content;
     const files = req?.files;
     if (files) {
       for (let i = 0; i < files.length; i++) {
@@ -150,22 +145,22 @@ const storeController = {
         const fieldname = files[i].fieldname;
         const checkname = fieldname.split("%")[0];
         //첨부파일 아닌 본문에 있을때만 교체
-        if (url && wr_content.indexOf(checkname) > -1) {
-          wr_content = wr_content.replace(`${checkname}`, url);
+        if (url && vi_content.indexOf(checkname) > -1) {
+          vi_content = vi_content.replace(`${checkname}`, url);
         }
       }
       //이미지 링크교체된것 최종 게시판테이블 업데이트
-      const updateQuery = await sqlHelper.edit(`${table}`,{ wr_content },{ wr_id });
+      const updateQuery = await sqlHelper.edit(`${table}`,{ vi_content },{ vi_id });
       await db.execute(updateQuery.query, updateQuery.values);
     }
     // 게시물 아이디
-    return wr_id;
+    return vi_id;
   },
   //게시글 수정*
-  edit: async (bo_table, row, req) => {
+  edit: async (st_table, row, req) => {
 
-    const table = `${TABLE.VIEW_VIP}${bo_table}`;
-    let { wr_id } = row;
+    const table = `${TABLE.VIEW_VIP}${st_table}`;
+    let { vi_id } = row;
 
     // 콘텐츠 첨부파일 삭제 처리
     const wrFiles = JSON.parse(row.wrFiles); // 배열 파스
@@ -175,7 +170,7 @@ const storeController = {
     if (wrFiles.length > 0) {
       for (const wrFile of wrFiles) {
         if (wrFile.remove) {
-          await storeController.removeFile(bo_table, wrFile);
+          await storeController.removeFile(st_table, wrFile);
         }
       }
     }
@@ -188,16 +183,16 @@ const storeController = {
     if (wrImgs?.length > 0) {
       for (let i = 0; i < wrImgs.length; i++) {
         //새로업데이트된 내용에 포함되지않았을때  //"bf_src":"IJ4z1717671828775.jpg"
-        if (row.wr_content.indexOf(wrImgs[i].f_filename) < 0) {
+        if (row.vi_content.indexOf(wrImgs[i].f_filename) < 0) {
           //파일지우기만함
-          await storeController.removeFile(bo_table, wrImgs[i]);
+          await storeController.removeFile(st_table, wrImgs[i]);
         }
       }
     }
 
 
     //파일추가
-    let wr_content = row.wr_content;
+    let vi_content = row.vi_content;
     const files = req?.files;
 
     if (files) {
@@ -211,7 +206,7 @@ const storeController = {
           //files에 저장하기
           const filePayload = {
             f_field: table,
-            f_fieldname: row.wr_id,
+            f_fieldname: row.vi_id,
             f_originalname: files[i].originalname,
             f_encoding: files[i].encoding,
             f_mimetype: files[i].mimetype,
@@ -230,18 +225,18 @@ const storeController = {
         const fieldname = files[i].fieldname;
         const checkname = fieldname.split("%")[0];
         //첨부파일 아닌 본문에 있을때만 교체
-        if (url && wr_content.indexOf(checkname) > -1) {
-          wr_content = wr_content.replace(`${checkname}`, url);
+        if (url && vi_content.indexOf(checkname) > -1) {
+          vi_content = vi_content.replace(`${checkname}`, url);
         }
       }
       //이미지 링크교체된것 최종 게시판테이블 업데이트
-      const updateQuery = await sqlHelper.edit(table,{ wr_content },{ wr_id:row.wr_id });
+      const updateQuery = await sqlHelper.edit(table,{ vi_content },{ vi_id:row.vi_id });
       await db.execute(updateQuery.query, updateQuery.values);
     }
-    delete row.wr_create_at;
-    delete row.wr_password;
-    row.wr_update_at = moment().format("YYYY-MM-DD HH:mm:ss");
-    row.wr_summary = getSummary(row.wr_content, 250);
+    delete row.vi_create_at;
+    delete row.vi_password;
+    row.vi_update_at = moment().format("YYYY-MM-DD HH:mm:ss");
+    row.vi_summary = getSummary(row.vi_content, 250);
 
     /* VIEW 필드 삭제 */
     delete row.good;
@@ -254,16 +249,16 @@ const storeController = {
     delete row.wrTags;
 
     //기존 글번호 태그 모두지우고 새로 인서트
-    await searchController.tagAdd(bo_table, wr_id, wrTags);
+    await storeSearchController.tagAdd(st_table, vi_id, wrTags);
 
     //내용 수정
     //이미지 링크교체된것 최종 게시판테이블 업데이트
-    row.wr_content = wr_content;
-    const sql = await sqlHelper.edit(table, row, { wr_id:row.wr_id });
+    row.vi_content = vi_content;
+    const sql = await sqlHelper.edit(table, row, { vi_id:row.vi_id });
     const [rows] = await db.execute(sql.query, sql.values);
 
     if (rows.affectedRows == 1) {
-      return wr_id;
+      return vi_id;
     } else {
       return resData(
         STATUS.E400.result, //status
@@ -303,84 +298,84 @@ const storeController = {
     await db.execute(sql.query, sql.values);
   },
   //수정시 게시글 삭제 //내부용
-  removeItem: async (bo_table, wr_id,wr_grp,ip) => {
-    const table = `${TABLE.VIEW_VIP}${bo_table}`;
+  removeItem: async (st_table, vi_id,vi_grp,ip) => {
+    const table = `${TABLE.VIEW_VIP}${st_table}`;
     // tag삭제
-    await searchController.tagDel(bo_table, wr_id);
+    await storeSearchController.tagDel(st_table, vi_id);
     // 삭제할 로우의 관련파일 가져오기
     const { query, values } = await sqlHelper.selectLimit(TABLE.FILES,null,
-      {f_field: bo_table, f_fieldname: wr_id,},
+      {f_field: st_table, f_fieldname: vi_id,},
       ["f_id", "f_filename"]
     );
 
     const [files] = await db.execute(query, values);
     for (const file of files) {
-      await this.removeFile(bo_table, file);
+      await this.removeFile(st_table, file);
     }
 
     // 게시물이 본문글이면 댓글도 삭제
     const sqlReply = await sqlHelper.selectLimit(
-      `${TABLE.VIEW_VIP}${bo_table}`,null,{ wr_id },["wr_reply"]);
+      `${TABLE.VIEW_VIP}${st_table}`,null,{ vi_id },["vi_reply"]);
 
     const [[replRows]] = await db.execute(sqlReply.query, sqlReply.values);
 
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
     let delCnt=0;
     // 게시물이 본문글이면 댓글도 삭제
-    if (replRows?.wr_reply == 0) {
-      const payload = { wr_use: 0, wr_update_at: at, wr_ip: ip };
+    if (replRows?.vi_reply == 0) {
+      const payload = { vi_use: 0, vi_update_at: at, vi_ip: ip };
       // 댓글삭제
-      const replDel = await sqlHelper.edit(`${TABLE.VIEW_VIP}${bo_table}`, payload, { wr_reply: wr_id });
+      const replDel = await sqlHelper.edit(`${TABLE.VIEW_VIP}${st_table}`, payload, { vi_reply: vi_id });
       const [parentDel]=await db.execute(replDel.query, replDel.values);
       delCnt = parentDel.affectedRows
 
       // 답글(그룹)삭제
-      const grpDel = await sqlHelper.edit(`${TABLE.VIEW_VIP}${bo_table}`, payload, { wr_grp });
+      const grpDel = await sqlHelper.edit(`${TABLE.VIEW_VIP}${st_table}`, payload, { vi_grp });
       const [parentGrpDel]=await db.execute(grpDel.query, grpDel.values);
       delCnt = parentGrpDel.affectedRows
     }
     // 자기자신(게시물)도 삭제
-    const payload = { wr_use: 0, wr_update_at: at, wr_ip: ip };
-    const rows = await sqlHelper.edit(`${TABLE.VIEW_VIP}${bo_table}`, payload, {wr_id});
+    const payload = { vi_use: 0, vi_update_at: at, vi_ip: ip };
+    const rows = await sqlHelper.edit(`${TABLE.VIEW_VIP}${st_table}`, payload, {vi_id});
 
     const [childDel] = await db.execute(rows.query, rows.values);
     delCnt = childDel.affectedRows
     return delCnt;
   },
   //수정시 게시글 삭제 //내부용
-  removeComment: async (bo_table, wr_id) => {
+  removeComment: async (st_table, vi_id) => {
     // 게시물 댓글 삭제
-      const rows = await sqlHelper.del(`${TABLE.VIEW_VIP}${bo_table}`,{wr_id});
+      const rows = await sqlHelper.del(`${TABLE.VIEW_VIP}${st_table}`,{vi_id});
       const [childDel] = await db.execute(rows.query, rows.values);
       const delCnt = childDel.affectedRows
     return delCnt;
   },
   //게시글 삭제*
-  del: async (bo_table, id, grp, member,ip) => {
+  del: async (st_table, id, grp, member,ip) => {
 
-    const wr_id = Number(id)
-    const wr_grp = Number(grp)
-    const table = `${TABLE.VIEW_VIP}${bo_table}`;
+    const vi_id = Number(id)
+    const vi_grp = Number(grp)
+    const table = `${TABLE.VIEW_VIP}${st_table}`;
     let delCnt = 0;
     // 자식글이 있는지 확인
-    const ch = await sqlHelper.selectLimit(table, null, { wr_reply: wr_id },["wr_id"]);
+    const ch = await sqlHelper.selectLimit(table, null, { vi_reply: vi_id },["vi_id"]);
     const [children] = await db.execute(ch.query,ch.values)
 
     // 최고 관리자 이면 모두 삭제함
     if (member && member?.mb_level >= LV.SUPER) {
       for (const child of children) {
-        delCnt += await storeController.del(bo_table, child.wr_id,child.wr_grp, member,ip);
+        delCnt += await storeController.del(st_table, child.vi_id,child.vi_grp, member,ip);
       }
-      delCnt += await storeController.removeItem(bo_table, wr_id,wr_grp,ip);
+      delCnt += await storeController.removeItem(st_table, vi_id,vi_grp,ip);
     } else {
       if (children?.length == 0) {
 
         // 답글 유무,
-        const replys = await sqlHelper.selectLimit(table,null,{ wr_reply: wr_id },["wr_id"]);
+        const replys = await sqlHelper.selectLimit(table,null,{ vi_reply: vi_id },["vi_id"]);
 
         if (replys.length == 0) {
           // 댓글이 없으면
-          delCnt += await storeController.removeItem(bo_table, wr_id,wr_grp,ip);
+          delCnt += await storeController.removeItem(st_table, vi_id,vi_grp,ip);
         } else {
           return resData(
             STATUS.E200.result, //status
@@ -403,13 +398,8 @@ const storeController = {
     const { table } = req.params;
     const config = await storeController.getConfig(table); //설정정보가져오기
 
-    if (isEmpty(config)) {
-      throw new Error("사용중지된 게시판입니다");
-    }
-    const cols = {
-      wr_use: 1,
-    };
-
+    if (isEmpty(config)) { throw new Error("사용중지된 게시판입니다");}
+    const cols = {vi_use: 1,};
     const { query, values } = await sqlHelper.selectSimpleCount(`${TABLE.VIEW_VIP}${table}`,cols);
     const [[ {rowsCount} ]] = await db.execute(query, values);
 
@@ -425,15 +415,14 @@ const storeController = {
     const { query, values } = await sqlHelper.selectSimpleCount(
       `${TABLE.VIEW_VIP}${table}`,
       null,
-      { wr_name: id }
+      { vi_name: id }
     );
     const [[{ rowsCount }]] = await db.execute(query, values);
     return rowsCount;
   },
   //페이지 목록*
-  list: async function (config, bo_table, options, member,host) {
-
-    if (!bo_table) {
+  list: async function ( st_table, cl, sp,member) {
+    if (!st_table) {
       const data = { err: "테이블이 지정되지 않았습니다." };
       return resData(
         STATUS.E200.result, //status
@@ -442,76 +431,20 @@ const storeController = {
         data //data
       );
     }
-    const table = `${TABLE.VIEW}${bo_table}`;
-
-    // search
-    // const options = req.query;
-    const wr_name = options?.writer ? { wr_name: options?.writer } : null;
-    const cols = {
-      wr_name,
-      wr_use: 1,
-      wr_reply:0,
-    };
-    cols["wr_name"] == null ? delete cols.wr_name : cols["wr_name"];
-    delete options?.writer;
-
-    if (options?.search) {
-      const colnameSql = await sqlHelper.colnames(table);
-      const [colnames] = await db.execute(colnameSql);
-      const searchCols = colnames.map((c) => {
-        return c.COLUMN_NAME;
-      });
-      const { query, values } = await sqlHelper.selectLimit(table,options,cols,null,searchCols);
-      const [rows] = await db.execute(query, values);
-
-
-      // 썸네일 이미지 연결 - 게시물에 연관 파일을 붙인다.
-      for (const row of rows) {
-
-        await storeController.addFiles(bo_table, row,host);
-        await storeController.addTags(bo_table, row); // tags
-        await storeController.addGoodFlag(bo_table, row, member);
-        row.thumb = getImage(config, row, host);
-      }
-      const cnt = await sqlHelper.selectSimpleCount(table, options, cols)
-      const [[{ rowsCount }]] = await db.execute(cnt.query,cnt.values);
-
-      const data = {rowsCount,rows};
-      return {
-        status: STATUS.S200.result, //status
-        message: STATUS.S200.resultDesc, //message
-        resDate: moment().format("YYYY-MM-DD HH:mm:ss"),
-        data, //data
-      };
-    } else {
-      const { query, values } = await sqlHelper.selectLimit(table,options,cols);
-      const [rows] = await db.execute(query, values);
-
-      for (const row of rows) {
-        await storeController.addFiles(bo_table, row,host);
-        await storeController.addTags(bo_table, row); // tags
-        await storeController.addGoodFlag(bo_table, row, member);
-        row.thumb = getImage(config, row,host);
-      }
-
-      const cnt = await sqlHelper.selectSimpleCount(table, null, cols)
-      // const countQuery = `SELECT COUNT(*) AS count FROM ${table} ${where}`;
-
-      const [[{ rowsCount }]] = await db.execute(cnt.query,cnt.values);
-      const data = {rowsCount,rows};
-      return {
-        status: STATUS.S200.result, //status
-        message: STATUS.S200.resultDesc, //message
-        resDate: moment().format("YYYY-MM-DD HH:mm:ss"),
-        data, //data
-      };
-    }
+    const row={}
+    const tableSpend = `${TABLE.VIEW_SPEND}`;
+    const tableClose = `${TABLE.VIEW_CLOSE}`;
+    await storeController.addTable(tableSpend,sp.options,{st_table},row)
+    await storeController.addTable(tableClose,cl.options,{st_table},row)
+    await storeController.addTags(st_table,row)
+    await storeController.addGoodFlag(st_table,row,member)
+    return row
   },
   //게시물 가져오기*
-  getItem: async function (bo_table, id, member,host) {
-    const table = `${TABLE.VIEW}${bo_table}`;
-    const wr_id = Number(id);
-    const sql = await sqlHelper.selectLimit(table, null, { wr_id });
+  getItem: async function (st_table, id, member,host) {
+    const table = `${TABLE.VIEW}${st_table}`;
+    const vi_id = Number(id);
+    const sql = await sqlHelper.selectLimit(table, null, { vi_id });
     const [[rows]] = await db.execute(sql.query, sql.values);
     const row = rows;
     if (!row) {
@@ -521,61 +454,71 @@ const storeController = {
         moment().format("YYYY-MM-DD HH:mm:ss")
       );
     }
-    await storeController.addFiles(bo_table, row,host); // file관련 item.wrImgs 본문내용, item.wrFiles 첨부파일
-    await storeController.addGoodFlag(bo_table, row, member); // good
-    await storeController.addTags(bo_table, row); // tags
+    await storeController.addFiles(st_table, row,host); // file관련 item.wrImgs 본문내용, item.wrFiles 첨부파일
+    await storeController.addGoodFlag(st_table, row, member); // good
+    await storeController.addTags(st_table, row); // tags
 
-    delete row.wr_password; //비번삭제
+    delete row.vi_password; //비번삭제
     return row;
   },
 
   //수정권한 검사*
-  checkItem: async function (bo_table, wr_id, password) {
-    const wr_password = await generatePassword(password);
-    const table = `${TABLE.VIEW_VIP}${bo_table}`;
-    const [[{cnt}]] = await sqlHelper.selectLimit(table, null, { wr_id, wr_password }, [
+  checkItem: async function (st_table, vi_id, password) {
+    const vi_password = await generatePassword(password);
+    const table = `${TABLE.VIEW_VIP}${st_table}`;
+    const [[{cnt}]] = await sqlHelper.selectLimit(table, null, { vi_id, vi_password }, [
       "COUNT(*) as cnt",
     ]);
     return cnt;
   },
 
   //최근 게시물 가져오기*
-  latest: async function (config, bo_table, limit,host) {
-    const table = `${TABLE.VIEW}${bo_table}`;
-    const sql = `select * from ${table} WHERE wr_reply=0 and wr_use=1 ` // 부모글
-    const manyReplys = sql + ` ORDER BY replys DESC, wr_update_at DESC LIMIT ${limit}`; // 답글 또는 부모글
-    const manyViews = sql + ` ORDER BY wr_view DESC, wr_update_at DESC LIMIT ${limit}`; // 본 수
-    const manyGoods = sql + ` ORDER BY good DESC, wr_update_at DESC LIMIT ${limit}`; // 좋아요
-    const [replys] = await db.execute(manyReplys); // 부모글또는 답글 wr_reply==0 수
+  latest: async function (config, st_table, limit,host) {
+    const table = `${TABLE.VIEW}${st_table}`;
+    const sql = `select * from ${table} WHERE vi_reply=0 and vi_use=1 ` // 부모글
+    const manyReplys = sql + ` ORDER BY replys DESC, vi_update_at DESC LIMIT ${limit}`; // 답글 또는 부모글
+    const manyViews = sql + ` ORDER BY vi_view DESC, vi_update_at DESC LIMIT ${limit}`; // 본 수
+    const manyGoods = sql + ` ORDER BY good DESC, vi_update_at DESC LIMIT ${limit}`; // 좋아요
+    const [replys] = await db.execute(manyReplys); // 부모글또는 답글 vi_reply==0 수
     const [views] = await db.execute(manyViews); // 본 수
     const [goods] = await db.execute(manyGoods); // 좋아요
 
     // 썸네일 이미지 연결 - 게시물에 연관 파일을 붙인다.
     for (const row of replys) {
-      await storeController.addFiles(bo_table, row,host);
-      await storeController.addTags(bo_table, row); // tags
+      await storeController.addFiles(st_table, row,host);
+      await storeController.addTags(st_table, row); // tags
       row.thumb = getImage(config, row, host);
     }
 
     for (const row of views) {
-      await storeController.addFiles(bo_table, row,host);
-      await storeController.addTags(bo_table, row); // tags
+      await storeController.addFiles(st_table, row,host);
+      await storeController.addTags(st_table, row); // tags
       row.thumb = getImage(config, row, host);
     }
 
     for (const row of goods) {
-      await storeController.addFiles(bo_table, row,host);
-      await storeController.addTags(bo_table, row); // tags
+      await storeController.addFiles(st_table, row,host);
+      await storeController.addTags(st_table, row); // tags
       row.thumb = getImage(config, row, host);
     }
-    return {table:bo_table,replys,views,goods}; //게시판이름, 부모 또는 답글5,조회수5,좋아요5
+    return {table:st_table,replys,views,goods}; //게시판이름, 부모 또는 답글5,조회수5,좋아요5
   },
 
+  //테이블별 지출붙이기 //내부용*
+  addTable: async function (table,options=null,cols=null,row) {
+    const {query,values} = await sqlHelper.selectLimit(table,options,cols);
+    const [result]= await db.execute(query,values);
+    const name = table.split('_');
+    const rowsCount = result?.length
+    row[name[1]] = result;
+    row[name[1]+'RowsCount'] = rowsCount;
+  },
+  //테이블별 마감붙이기 //내부용*
   //최근 게시물 가져오기에 파일 붙이기 //내부용*
   addFiles: async function (table, row,host) {
 
     //파일테이블내역 불러오기
-    cols = {f_field: `${TABLE.VIEW_VIP}${table}`,f_fieldname: row.wr_id};
+    cols = {f_field: `${TABLE.VIEW_VIP}${table}`,f_fieldname: row.vi_id};
     funcs = ["f_id","f_originalname","f_encoding","f_mimetype","f_destination","f_filename","f_path","f_size",];
     const { query, values } = await sqlHelper.selectLimit(TABLE.FILES,null,cols,funcs);
     const [files] = await db.execute(query, values);
@@ -589,7 +532,7 @@ const storeController = {
       const idx = src.lastIndexOf(".");
       const filename = src.substring(0, idx);
 
-      if (row.wr_content.indexOf(filename) < 0) {
+      if (row.vi_content.indexOf(filename) < 0) {
         //없으면 첨부파일
         file.remove = false;
         file.url = `${host}/${file.f_path}`; //프론트에서 다운로드용 url
@@ -600,42 +543,32 @@ const storeController = {
     }
   },
   //최근게시물에 태그붙이기 //내부용*
-  addTags: async function (table, row) {
+  addTags: async function (table,row) {
     //태그테이블내역 불러오기
-    cols = {
-      bo_table: table,
-      wr_id: Number(row.wr_id),
-    };
-    funcs = ["bo_tag"];
-    const { query, values } = await sqlHelper.selectLimit(
-      TABLE.BOARD_TAGS,
-      null,
-      cols,
-      funcs
-    );
-
+    cols = {st_table: table,};
+    funcs = ["st_tag"];
+    const { query, values } = await sqlHelper.selectLimit(TABLE.STORE_TAGS,null,cols,funcs);
     const [tags] = await db.execute(query, values);
 
-    row.wrTags = [];
-    for (const tag of tags) {
-      row.wrTags.push(tag.bo_tag);
-    }
-
+      row.tags = [];
+      for (const tag of tags) {
+        row.tags.push(tag.st_tag);
+      }
   },
   //좋아요 붙이기 //내부용*
   addGoodFlag: async function (table, row, member = null) {
     if (member) {
-      row.goodFlag = await getFlag(table, row.wr_id, member.mb_id); //goodController에서
+      row.goodFlag = await getFlag(table, member.mb_id); //storeGoodController에서
     } else {
       row.goodFlag = 0;
     }
   },
   //게시물 관련 목록을 가져옴 // 이전글/다음글/관련글*
-  getInfo: async function (bo_table, wr_grp) {
-    const table = `${TABLE.VIEW_VIP}${bo_table}`;
-    const prev = await sqlHelper.selectLimit(table,null,{wr_reply: 0, wr_use:1, wr_grp: wr_grp - 1});
+  getInfo: async function (st_table, vi_grp) {
+    const table = `${TABLE.VIEW_VIP}${st_table}`;
+    const prev = await sqlHelper.selectLimit(table,null,{vi_reply: 0, vi_use:1, vi_grp: vi_grp - 1});
     const [[prevResult]] = await db.execute(prev.query, prev.values);
-    const next = await sqlHelper.selectLimit(table,null,{wr_reply: 0, wr_use:1, wr_grp: wr_grp + 1});
+    const next = await sqlHelper.selectLimit(table,null,{vi_reply: 0, vi_use:1, vi_grp: vi_grp + 1});
     const [[nextResult]] = await db.execute(next.query, next.values);
     const prevNextInfo = {
       prev: prevResult ? prevResult : null,
@@ -644,13 +577,13 @@ const storeController = {
     return prevNextInfo;
   },
   //작성자글 모아보기*
-  getInfoGrp: async function (config,bo_table,wr_grp,req) {
+  getInfoGrp: async function (config,st_table,vi_grp,req) {
     const { page } = req.query;
-    const table = `${TABLE.VIEW_VIP}${bo_table}`;
+    const table = `${TABLE.VIEW_VIP}${st_table}`;
     const options={ ...req.query}
     let sortBy=[];
     let type=[];
-    for (const sort of config.bo_sort) {
+    for (const sort of config.st_sort) {
         sortBy.push(sort.by)
         const desc  = Number(sort.desc)==0 ? 'desc' : 'asc';
         type.push(desc)
@@ -658,7 +591,7 @@ const storeController = {
     options.sortBy = sortBy;
     options.type = type;
     options.page = page-1;
-    const cols={wr_reply:0, wr_grp:Number(wr_grp)}
+    const cols={vi_reply:0, vi_grp:Number(vi_grp)}
     const {query,values} = await sqlHelper.selectLimit(table,options,cols);
     const [info] = await db.execute(query,values);
     const grpCnt = await sqlHelper.selectSimpleCount(table,null,cols)
@@ -670,9 +603,9 @@ const storeController = {
     return groupInfo;
   },
   //조회수 증가*
-  viewUp: async function (bo_table, wr_id) {
-    const table = `${TABLE.VIEW_VIP}${bo_table}`;
-    const sql = `UPDATE ${table} SET wr_view=wr_view+1 WHERE wr_id=${Number(wr_id)}`
+  viewUp: async function (st_table, vi_id) {
+    const table = `${TABLE.VIEW_VIP}${st_table}`;
+    const sql = `UPDATE ${table} SET vi_view=vi_view+1 WHERE vi_id=${Number(vi_id)}`
     const [rows] = await db.execute(sql);
     return rows;
   },
@@ -687,11 +620,11 @@ const storeController = {
   },
   //댓글목록
   //댓글목록가져오기*
-  async commentList(bo_table, wr_reply, options, member=null) {
+  async commentList(st_table, vi_reply, options, member=null) {
 
     options.page= Number(options.page)-1
-    const cols = {wr_reply,wr_parent:0}
-    const table = `${TABLE.VIEW}${bo_table}`;
+    const cols = {vi_reply,vi_parent:0}
+    const table = `${TABLE.VIEW}${st_table}`;
     const commSql = await sqlHelper.selectLimit(table,options,cols)
     const [rows]=await db.execute(commSql.query,commSql.values)
     const commCount= await sqlHelper.selectSimpleCount(table,null,cols)
@@ -699,18 +632,18 @@ const storeController = {
     const ids = []; //댓글 아이디모음
     const replys = [];
     for (const row of rows) {
-      ids.push(row.wr_id); // 아이디 모음
-      await storeController.addGoodFlag(bo_table, row, member);
+      ids.push(row.vi_id); // 아이디 모음
+      await storeController.addGoodFlag(st_table, row, member);
     }
 
     //답글모아서 보내기
     for (const id of ids) {
-      const {query,values} = await sqlHelper.selectLimit(table,{sortBy:['wr_grp','wr_order'], type:['desc','asc']},{wr_reply,wr_parent:id})
+      const {query,values} = await sqlHelper.selectLimit(table,{sortBy:['vi_grp','vi_order'], type:['desc','asc']},{vi_reply,vi_parent:id})
       const [rows]=await db.execute(query,values)
 
       if (rows?.length > 0) {
         for (const row of rows) {
-          await storeController.addGoodFlag(bo_table, row, member);
+          await storeController.addGoodFlag(st_table, row, member);
           //추가
         }
       }
@@ -725,50 +658,50 @@ const storeController = {
   },
 
   //댓글추가 새글*
-  commentAdd: async function (bo_table, data) {
-    const table = `${TABLE.VIEW_VIP}${bo_table}`; //생성테이블
+  commentAdd: async function (st_table, data) {
+    const table = `${TABLE.VIEW_VIP}${st_table}`; //생성테이블
 
     let sql;
-    if (data.wr_parent == 0) {
+    if (data.vi_parent == 0) {
       // 새글
-      const commParent = await sqlHelper.selectLimit(table,null,{wr_reply:Number(data.wr_reply)},[' max(wr_grp) AS wr_grp '])
+      const commParent = await sqlHelper.selectLimit(table,null,{vi_reply:Number(data.vi_reply)},[' max(vi_grp) AS vi_grp '])
       const [[parent]]= await db.execute(commParent.query,commParent.values)
-      let wr_grp = parent.wr_grp
-      data.wr_grp = wr_grp ? wr_grp + 1 : 1;
-      data.wr_order = 0;
-      data.wr_dep = 0;
+      let vi_grp = parent.vi_grp
+      data.vi_grp = vi_grp ? vi_grp + 1 : 1;
+      data.vi_order = 0;
+      data.vi_dep = 0;
     } else {
       // 답글
-      sql = `SELECT wr_grp, wr_order, wr_dep FROM ${table} WHERE wr_id=${data.wr_parent}`;
+      sql = `SELECT vi_grp, vi_order, vi_dep FROM ${table} WHERE vi_id=${data.vi_parent}`;
       const [parent] = (await db.execute(sql))[0];
-      data.wr_grp = parent.wr_grp;
-      data.wr_order = parent.wr_order + 1;
-      data.wr_dep = parent.wr_dep + 1;
-      const uSql = `UPDATE ${table} SET wr_order = wr_order + 1
-				WHERE wr_reply=${data.wr_reply} AND wr_grp=${parent.wr_grp} AND wr_order >= ${data.wr_order}`;
+      data.vi_grp = parent.vi_grp;
+      data.vi_order = parent.vi_order + 1;
+      data.vi_dep = parent.vi_dep + 1;
+      const uSql = `UPDATE ${table} SET vi_order = vi_order + 1
+				WHERE vi_reply=${data.vi_reply} AND vi_grp=${parent.vi_grp} AND vi_order >= ${data.vi_order}`;
       await db.execute(uSql);
     }
 
-    data.wr_create_at = moment().format("YYYY-MM-DD HH:mm:ss");
-    data.wr_update_at = moment().format("YYYY-MM-DD HH:mm:ss");
+    data.vi_create_at = moment().format("YYYY-MM-DD HH:mm:ss");
+    data.vi_update_at = moment().format("YYYY-MM-DD HH:mm:ss");
 
     const query =  await sqlHelper.insert(table, data)
     const [rows] = await db.execute(query.query, query.values);
-    const wr_id = rows.insertId;
+    const vi_id = rows.insertId;
 
-    const comm = await sqlHelper.selectLimit(table,null,{wr_id})
+    const comm = await sqlHelper.selectLimit(table,null,{vi_id})
     const [[item]] = await db.execute(comm.query,comm.values)
 
     return item;
 
   },
   //댓글수정*
-  commentEdit: async function (bo_table, data) {
-    const table = `${TABLE.VIEW_VIP}${bo_table}`;
-    let { wr_id } = data;
-    delete data.wr_id;
-    delete data.wr_create_at;
-    delete data.wr_password;
+  commentEdit: async function (st_table, data) {
+    const table = `${TABLE.VIEW_VIP}${st_table}`;
+    let { vi_id } = data;
+    delete data.vi_id;
+    delete data.vi_create_at;
+    delete data.vi_password;
     /** VIEW 필드 삭제 */
     delete data.good;
     delete data.bad;
@@ -778,17 +711,17 @@ const storeController = {
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
     const ip = getIp(req);
 
-    data.wr_update_at = at
-    data.wr_ip=ip
+    data.vi_update_at = at
+    data.vi_ip=ip
 
     const { query, values } = await sqlHelper.edit(
       `${TABLE.VIEW_VIP}${table}`,
       payload,
-      {wr_id}
+      {vi_id}
     );
     const [rows] = await db.execute(query, values);
     if (rows.affectedRows) {
-      const data = await sqlHelper.selectLimit(table,null,{wr_id})
+      const data = await sqlHelper.selectLimit(table,null,{vi_id})
       const [[item]] = await db.execute(data.query,data.values)
       return item;
     } else {
@@ -802,24 +735,24 @@ const storeController = {
     }
   },
   //댓글삭제
-  commentDel: async function (bo_table,id,member) {
-    const wr_id = Number(id)
-    const table = `${TABLE.VIEW_VIP}${bo_table}`;
+  commentDel: async function (st_table,id,member) {
+    const vi_id = Number(id)
+    const table = `${TABLE.VIEW_VIP}${st_table}`;
     let delCnt = 0;
     // 자식글이 있는지 확인
-    const ch = await sqlHelper.selectLimit(table, null, { wr_parent: wr_id },["wr_id"]);
+    const ch = await sqlHelper.selectLimit(table, null, { vi_parent: vi_id },["vi_id"]);
     const [children] = await db.execute(ch.query,ch.values)
 
     // 최고 관리자 이면 모두 삭제함
     if (member?.mb_level >= LV.SUPER) {
       for (const child of children) {
-        delCnt += await storeController.commentDel(bo_table, child.wr_id, member);
+        delCnt += await storeController.commentDel(st_table, child.vi_id, member);
       }
-      delCnt += await storeController.removeComment(bo_table, wr_id);
+      delCnt += await storeController.removeComment(st_table, vi_id);
     } else {
       if (children?.length == 0) {
         // 답글 유무,
-        const replys = await sqlHelper.del(table,{ wr_id });
+        const replys = await sqlHelper.del(table,{ vi_id });
         const [result] = await db.execute(replys.query,replys.values)
         delCnt = result.affectedRows
       } else {

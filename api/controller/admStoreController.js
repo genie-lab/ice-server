@@ -63,16 +63,16 @@ const admStoreController = {
     data.st_ip = getIp(req)
 
 
-    let sqls = fs.readFileSync(path.join(__dirname, "./vip_table.sql")).toString();
-    sqls = sqls.replace(/{{table}}/g, data.st_table);
-    const sqlArr = sqls.split(";");
+    // let sqls = fs.readFileSync(path.join(__dirname, "./vip_table.sql")).toString();
+    // sqls = sqls.replace(/{{table}}/g, data.st_table);
+    // const sqlArr = sqls.split(";");
 
-    for (const sql of sqlArr) {
-      if (sql.trim()) {
-        //테이블 view 생성
-        await db.execute(sql);
-      }
-    }
+    // for (const sql of sqlArr) {
+    //   if (sql.trim()) {
+    //     //테이블 view 생성
+    //     await db.execute(sql);
+    //   }
+    // }
 
     // 그룹생성
     const grp = await sqlHelper.selectLimit(TABLE.STORE,null,null,['max(st_group) as cnt']);
@@ -101,7 +101,7 @@ const admStoreController = {
     }
     const stInfo = await sqlHelper.insert(TABLE.STORE_INFO,stInfoPayload)
     await db.execute(stInfo.query,stInfo.values)
-    
+
     return insertDone;
 
   },

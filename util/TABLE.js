@@ -27,9 +27,13 @@ const TABLE = {
   VIEW: "view_",
 
   STORE: "store",
+  STORE_SPEND: "store_spend",
+  STORE_CLOSE: "store_close",
+  STORE_GOOD: "store_good",
   STORE_TAGS: "store_tags",
   VIP: "vip_",
-  VIEW_VIP: "view_vip_",
+  VIEW_SPEND: "view_spend",
+  VIEW_CLOSE: "view_close",
   STORE_INFO: "store_info",
 
 };
