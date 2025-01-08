@@ -2,13 +2,7 @@ const db = require("../plugins/mysql");
 
 const sqlHelper = {
   //함수만들기 cols는 where절도 같이 들어감
-  selectLimit: async function (
-    table = "",
-    options = null,
-    cols = null,
-    funcs = [],
-    searchCols = null
-  ) {
+  selectLimit: async function (table = "",options = null,cols = null,funcs = [],searchCols = null) {
     // const query = `select * from view_bank ORDER BY 'desc' limit 0,1`;
     let query = `select * from ${table}`;
     if (funcs?.length > 0) {

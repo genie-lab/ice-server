@@ -4,22 +4,49 @@ const sqlHelper = require("../../util/sqlHelper");
 const qs = require("qs");
 const { ip, ipv6, mac } = require("address");
 const moment = require("../../util/moment");
-const { getIp } = require("../../util/lib");
+const { getIp, isEmpty, resData } = require("../../util/lib");
+const STATUS = require("../../util/STATUS");
 
 const storeSpendController = {
 
   //전체목록갯수 get
   listCount: async function () {
-    const query = await sqlHelper.selectSimpleCount(VIEW_TABLE.STORE_SPEND);
+    const query = await sqlHelper.selectSimpleCount(VIEW_TABLE.SPEND);
     const [[{ rowsCount }]] = await db.execute(query);
     return rowsCount;
   },
   //페이지 목록 get
   list: async function (req) {
     const options = req.query;
-    const { query } = await sqlHelper.selectLimit(VIEW_TABLE.STORE_SPEND, options);
-    const [rows] = await db.execute(query);
-    return rows;
+    console.log('options',req.query);
+    const search = options?.search;
+    if (options?.search) {
+      const colnameSql = await sqlHelper.colnames(VIEW_TABLE.SPEND);
+      const [colnames] = await db.execute(colnameSql);
+      const searchCols = colnames.map((c) => {
+        return c.COLUMN_NAME;
+      });
+      const { query, values } = await sqlHelper.selectLimit(VIEW_TABLE.SPEND,options,cols,null,searchCols);
+      const [rows] = await db.execute(query, values);
+
+      const cnt = await sqlHelper.selectSimpleCount(VIEW_TABLE.SPEND, options, cols)
+      const [[{ rowsCount }]] = await db.execute(cnt.query,cnt.values);
+
+      const data = {rowsCount,rows};
+    }else{
+      const { query,values } = await sqlHelper.selectLimit(VIEW_TABLE.SPEND, options);
+      const [rows] = await db.execute(query,values);
+      const cnt = await sqlHelper.selectSimpleCount(VIEW_TABLE.SPEND, null, {st_table:options.table})
+      const [[{ rowsCount }]] = await db.execute(cnt.query,cnt.values);
+      console.log('rowsCount',rowsCount);
+      const data = {rowsCount,rows};
+        return {
+          status: STATUS.S200.result, //status
+          message: STATUS.S200.resultDesc, //message
+          resDate: moment().format("YYYY-MM-DD HH:mm:ss"),
+          data, //data
+        };
+    }
   },
   //where절 목록 post
   listByWhere: async function (req) {
@@ -31,7 +58,7 @@ const storeSpendController = {
       type: ["desc"],
     };
     const { query, values } = await sqlHelper.selectLimit(
-      VIEW_TABLE.STORE_SPEND,
+      VIEW_TABLE.SPEND,
       options,
       cols
     );
@@ -45,7 +72,7 @@ const storeSpendController = {
     //where절
     const cols = req.body;
     const { query, values } = await sqlHelper.selectLimit(
-      VIEW_TABLE.STORE_SPEND,
+      VIEW_TABLE.SPEND,
       (options = null),
       cols,
       func
@@ -73,47 +100,46 @@ const storeSpendController = {
   },
   //수정삭제 put
   edit: async function (req) {
-    const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
-    const payload = {
-      ep_main: req.body.ep_main,
-      ep_category: req.body.ep_category.toString(),
-      ep_fee: req.body.ep_fee,
-      ep_fee_date: req.body.ep_fee_date,
-      ep_sender: req.body.ep_sender,
-      ep_receiver: req.body.ep_receiver,
-      ep_receiver_phone: req.body.ep_receiver_phone,
-      ep_receiver_addr1: req.body.ep_receiver_addr1,
-      ep_receiver_addr2: req.body.ep_receiver_addr2,
-      ep_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
-      ep_ip_at: getIp(req),
-      mb_id: "hanna",
+    const at = moment().format("YYYY-MM-DD HH:mm:ss");
+    const data = req.body;
+    const sp_id = data.sp_id;
+    const index = data.index;
+    delete data.index;
+    delete data.sp_id;
+    data.sp_spend = Number(data.sp_spend);
+    let payload = {
+      ...data,
+      sp_ip: getIp(req),
+      mb_id: req.user[0].mb_id,
+      sp_update_at: at, //시간새로
     };
-    const { query, values } = await sqlHelper.edit(
-      TABLE.STORE_SPEND,
-      payload,
-      cols
-    );
+    const { query, values } = await sqlHelper.edit(TABLE.STORE_SPEND,payload,{sp_id});
     const [editDone] = await db.execute(query, values);
-    return editDone;
+    if(editDone.affectedRows==1){
+      payload.index = index;
+      return payload;
+    }else{
+
+    }
   },
   //수정삭제 put
   del: async function (req) {
-    const cols = {
-      ep_id: req.body.ep_id,
+    const data = req.body;
+    const sp_id = data.sp_id;
+    delete data.index;
+    delete data.sp_id;
+
+    const at = moment().format("YYYY-MM-DD HH:mm:ss");
+    let payload = {
+      ...data,
+      sp_use:0,
+      sp_ip: getIp(req),
+      mb_id: req.user[0].mb_id,
+      sp_update_at: at, //시간새로
     };
-    const payload = {
-      ep_use: 0,
-      ep_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
-      ep_ip_at: getIp(req),
-      mb_id: "hanna",
-    };
-    const { query, values } = await sqlHelper.edit(
-      TABLE.STORE_SPEND,
-      payload,
-      cols
-    );
-    const [editDone] = await db.execute(query, values);
-    return editDone;
+    const { query, values } = await sqlHelper.edit(TABLE.STORE_SPEND,payload,{sp_id});
+    const [delDone] = await db.execute(query, values);
+    return delDone;
   },
 };
 module.exports = storeSpendController;

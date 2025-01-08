@@ -5,6 +5,9 @@ const VIEW_TABLE = {
   PERCHASE: "view_perchase",
   SALES: "view_sales",
   MAIN: "view_stores",
+
+  SPEND: "view_spend",
+  CLOSE: "view_close",
 };
 const TABLE = {
   BANK: "bank",
@@ -32,8 +35,6 @@ const TABLE = {
   STORE_GOOD: "store_good",
   STORE_TAGS: "store_tags",
   VIP: "vip_",
-  VIEW_SPEND: "view_spend",
-  VIEW_CLOSE: "view_close",
   STORE_INFO: "store_info",
 
 };
