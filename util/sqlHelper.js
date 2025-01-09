@@ -1,4 +1,4 @@
-// import moment from "./moment";
+const moment = require("moment");
 
 const sqlHelper = {
   //함수만들기 cols는 where절도 같이 들어감
@@ -54,14 +54,19 @@ const sqlHelper = {
           if(arr?.length>0){
             if(arr?.length==2){
               for(const col of cols){ // 1 <= col ~ 5 <= col
-                const str = ` (${arr[0]} <= ${col} and ${arr[1]} <= ${col}) `
+                const str = ` ( ${col} between '${arr[0]}' and '${moment(arr[1]).add(1,'days').format('YYYY-MM-DD')}' ) `
                 console.log('str',str)
                 searchKey.push(str)  
               }
             }
             if(arr?.length==1){
+              const date = moment(arr[0]).add(1,'days').format('YYYY-MM-DD')
+              arr.push(date)
+              console.log('arr',arr)
               for(const col of cols){ // 1 <= col ~ 5 <= col
-                searchKey.push(` (${arr[0]} <= ${col}) `) 
+                const str = ` ( ${col} between '${arr[0]}' and '${arr[1]}' ) `
+                console.log('str',str)
+                searchKey.push(str)  
               }
             }
           }
@@ -168,14 +173,19 @@ const sqlHelper = {
           if(arr?.length>0){
             if(arr?.length==2){
               for(const col of cols){ // 1 <= col ~ 5 <= col
-                const str = ` (${arr[0]} <= ${col} and ${arr[1]} <= ${col}) `
+                const str = ` ( ${col} between '${arr[0]}' and '${moment(arr[1]).add(1,'days').format('YYYY-MM-DD')}' ) `
                 console.log('str',str)
                 searchKey.push(str)  
               }
             }
             if(arr?.length==1){
+              const date = moment(arr[0]).add(1,'days').format('YYYY-MM-DD')
+              arr.push(date)
+              console.log('arr',arr)
               for(const col of cols){ // 1 <= col ~ 5 <= col
-                searchKey.push(` (${arr[0]} <= ${col}) `) 
+                const str = ` ( ${col} between '${arr[0]}' and '${arr[1]}' ) `
+                console.log('str',str)
+                searchKey.push(str)  
               }
             }
           }
