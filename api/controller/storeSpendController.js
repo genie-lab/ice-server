@@ -18,25 +18,40 @@ const storeSpendController = {
   //페이지 목록 get
   list: async function (req) {
     const options = req.query;
-    console.log('options',req.query);
-    const search = options?.search;
+    console.log('options1', options);
+
+    const allMall = options.allMall 
+    console.log('options2', allMall);
+
+    const cols = allMall == 'true' || allMall == true  ? null : {st_table:options.table}
+
+    console.log('options3',options, cols);
     if (options?.search) {
       const colnameSql = await sqlHelper.colnames(VIEW_TABLE.SPEND);
       const [colnames] = await db.execute(colnameSql);
+      console.log('colnames',colnames)
       const searchCols = colnames.map((c) => {
         return c.COLUMN_NAME;
       });
+      console.log('searchCols',searchCols)
       const { query, values } = await sqlHelper.selectLimit(VIEW_TABLE.SPEND,options,cols,null,searchCols);
+      console.log('query, values',query, values)
       const [rows] = await db.execute(query, values);
-
-      const cnt = await sqlHelper.selectSimpleCount(VIEW_TABLE.SPEND, options, cols)
+      console.log('rows',rows)
+      const cnt = await sqlHelper.selectSimpleCount(VIEW_TABLE.SPEND, options,cols, searchCols)
       const [[{ rowsCount }]] = await db.execute(cnt.query,cnt.values);
-
       const data = {rowsCount,rows};
+      return {
+        status: STATUS.S200.result, //status
+        message: STATUS.S200.resultDesc, //message
+        resDate: moment().format("YYYY-MM-DD HH:mm:ss"),
+        data, //data
+      };
+
     }else{
-      const { query,values } = await sqlHelper.selectLimit(VIEW_TABLE.SPEND, options);
+      const { query,values } = await sqlHelper.selectLimit(VIEW_TABLE.SPEND, options, cols);
       const [rows] = await db.execute(query,values);
-      const cnt = await sqlHelper.selectSimpleCount(VIEW_TABLE.SPEND, null, {st_table:options.table})
+      const cnt = await sqlHelper.selectSimpleCount(VIEW_TABLE.SPEND, null, cols)
       const [[{ rowsCount }]] = await db.execute(cnt.query,cnt.values);
       console.log('rowsCount',rowsCount);
       const data = {rowsCount,rows};
@@ -91,7 +106,9 @@ const storeSpendController = {
       sp_update_at: at, //시간새로
     };
     const { query, values } = await sqlHelper.insert(TABLE.STORE_SPEND,payload);
+    console.log('query,value',query,values)
     const [insertDone] = await db.execute(query, values);
+    console.log('insertDone',insertDone)
     if(insertDone.affectedRows==1){
       payload.sp_id=insertDone.insertId;
       delete payload.sp_ip;

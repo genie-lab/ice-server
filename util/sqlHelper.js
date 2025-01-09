@@ -1,8 +1,10 @@
-const db = require("../plugins/mysql");
+// import moment from "./moment";
 
 const sqlHelper = {
   //함수만들기 cols는 where절도 같이 들어감
   selectLimit: async function (table = "",options = null,cols = null,funcs = [],searchCols = null) {
+    // console.log('table>>options>>cols>>funcs>>searchCols',table,options,cols,funcs,searchCols)
+
     // const query = `select * from view_bank ORDER BY 'desc' limit 0,1`;
     let query = `select * from ${table}`;
     if (funcs?.length > 0) {
@@ -27,19 +29,84 @@ const sqlHelper = {
       limit = ` LIMIT ${page} , ${options.rowsPerPage} `;
     }
 
-    let search = "";
     //서치
+    let search=null;
     if (options?.search) {
-      const str = options.search;
-      const arr = str.split(" ");
-      const like = arr.join("|");
-      const regexp = ` regexp '${like}' `;
-      let searchKey = searchCols.map((s) => {
-        return ` ${s} ${regexp} `;
-      });
-      search = searchKey.join(" or ");
-      search = ` WHERE ${search} `;
+      const type = options?.searchType;
+      const cols = options?.searchCols;
+      const str = options?.search;
+      
       // //서치할때는 전체페이지에서 찾기
+      let arr, like, regexp, searchKey;
+      switch (type) {
+        case '내용포함':
+          arr = str.split(" ");
+          like = arr.join("|");
+          regexp = ` regexp '${like}' `;
+          searchKey = searchCols.map((s) => { return ` ${s} ${regexp} `; });
+          search = searchKey.join(" or ");
+          break;
+
+        case '기간':
+          arr = str.split("~"); //arr[0] ror arr[1]
+          console.log('arr>>>>',arr,arr?.length, cols);
+          searchKey=[];
+          if(arr?.length>0){
+            if(arr?.length==2){
+              for(const col of cols){ // 1 <= col ~ 5 <= col
+                const str = ` (${arr[0]} <= ${col} and ${arr[1]} <= ${col}) `
+                console.log('str',str)
+                searchKey.push(str)  
+              }
+            }
+            if(arr?.length==1){
+              for(const col of cols){ // 1 <= col ~ 5 <= col
+                searchKey.push(` (${arr[0]} <= ${col}) `) 
+              }
+            }
+          }
+          console.log('searchKey>>>>',searchKey);
+
+          search = searchKey.join(" or ");
+          console.log('search*****',search)
+          break;
+
+        case '이상':
+          if(typeof cols == 'object'){ search = `${cols.name} >= ${Number(str)}`;
+          }else if(cols){ search = `${cols} >= ${Number(str)}`;
+          }else{
+            arr = str.split(" ");
+            like = arr.join("|");
+            regexp = ` regexp '${like}' `;
+            searchKey = searchCols.map((s) => { return ` ${s} ${regexp} `; });
+            search = searchKey.join(" or ");
+          }
+          break;
+
+        case '이하':
+          if(typeof cols == 'object'){ search = `${cols.name} <= ${Number(str)}`;
+          }else if(cols){ search = `${cols} <= ${Number(str)}`;
+          }else{
+            arr = str.split(" ");
+            like = arr.join("|");
+            regexp = ` regexp '${like}' `;
+            searchKey = searchCols.map((s) => { return ` ${s} ${regexp} `; });
+            search = searchKey.join(" or ");
+          }
+          break;
+      
+        default:
+          arr = str.split(" ");
+          like = arr.join("|");
+          regexp = ` regexp '${like}' `;
+          searchKey = searchCols.map((s) => { return ` ${s} ${regexp} `; });
+          search = searchKey.join(" or ");
+
+          console.log('search~~~~',search)
+
+          break;
+      }
+      search = ` ${search} `;
     }
 
     //where
@@ -62,29 +129,98 @@ const sqlHelper = {
         values.push(cols[c]);
       }
       key = key.join(" and ");
-      key = `WHERE ${key} `;
-      key = search ? null : key;
+      key = ` ${key} `;
+      key = search ? `WHERE ${key} and ${search}` : `WHERE ${key}`;
+    }else{
+      key = search ? `WHERE ${search}` : '';
     }
-    query = `${query} ${search} ${key} ${orderby} ${limit}`;
+    query = `${query} ${key} ${orderby} ${limit}`;
+    console.log('query>>>>',query)
     return { query, values };
   },
+
   //함수만들기 cols는 where절도 같이 들어감
   selectSimpleCount: async function (table, options = {},cols=null, searchCols = []) {
     // const query = `select * from ${table}`;
 
-    let search = "";
     //서치
+    let search=null;
     if (options?.search) {
-      const str = options.search;
-      const arr = str.split(" ");
-      const like = arr.join("|");
-      const regexp = ` regexp '${like}' `;
-      let searchKey = searchCols.map((s) => {
-        return ` ${s} ${regexp} `;
-      });
-      search = searchKey.join(" or ");
-      search = ` WHERE ${search} `;
+      const type = options?.searchType;
+      const cols = options?.searchCols;
+      const str = options?.search;
+      
       // //서치할때는 전체페이지에서 찾기
+      let arr, like, regexp, searchKey;
+      switch (type) {
+        case '내용포함':
+          arr = str.split(" ");
+          like = arr.join("|");
+          regexp = ` regexp '${like}' `;
+          searchKey = searchCols.map((s) => { return ` ${s} ${regexp} `; });
+          search = searchKey.join(" or ");
+          break;
+
+        case '기간':
+          arr = str.split("~"); //arr[0] ror arr[1]
+          console.log('arr>>>>',arr,arr?.length, cols);
+          searchKey=[];
+          if(arr?.length>0){
+            if(arr?.length==2){
+              for(const col of cols){ // 1 <= col ~ 5 <= col
+                const str = ` (${arr[0]} <= ${col} and ${arr[1]} <= ${col}) `
+                console.log('str',str)
+                searchKey.push(str)  
+              }
+            }
+            if(arr?.length==1){
+              for(const col of cols){ // 1 <= col ~ 5 <= col
+                searchKey.push(` (${arr[0]} <= ${col}) `) 
+              }
+            }
+          }
+          console.log('searchKey>>>>',searchKey);
+
+          search = searchKey.join(" or ");
+          console.log('search*****',search)
+          break;
+
+        case '이상':
+          if(typeof cols == 'object'){ search = `${cols.name} >= ${Number(str)}`;
+          }else if(cols){ search = `${cols} >= ${Number(str)}`;
+          }else{
+            arr = str.split(" ");
+            like = arr.join("|");
+            regexp = ` regexp '${like}' `;
+            searchKey = searchCols.map((s) => { return ` ${s} ${regexp} `; });
+            search = searchKey.join(" or ");
+          }
+          break;
+
+        case '이하':
+          if(typeof cols == 'object'){ search = `${cols.name} <= ${Number(str)}`;
+          }else if(cols){ search = `${cols} <= ${Number(str)}`;
+          }else{
+            arr = str.split(" ");
+            like = arr.join("|");
+            regexp = ` regexp '${like}' `;
+            searchKey = searchCols.map((s) => { return ` ${s} ${regexp} `; });
+            search = searchKey.join(" or ");
+          }
+          break;
+      
+        default:
+          arr = str.split(" ");
+          like = arr.join("|");
+          regexp = ` regexp '${like}' `;
+          searchKey = searchCols.map((s) => { return ` ${s} ${regexp} `; });
+          search = searchKey.join(" or ");
+
+          console.log('search~~~~',search)
+
+          break;
+      }
+      search = ` ${search} `;
     }
 
     //where
@@ -107,11 +243,15 @@ const sqlHelper = {
         values.push(cols[c]);
       }
       key = key.join(" and ");
-      key = `WHERE ${key} `;
-      key = search ? null : key;
+      key = ` ${key} `;
+      key = search ? `WHERE ${key} and ${search}` : `WHERE ${key}`;
+    }else{
+      key = search ? `WHERE ${search}` : '';
     }
 
-    const query = `select count(*) AS rowsCount from ${table} ${search} ${key}`;
+    const query = `select count(*) AS rowsCount from ${table} ${key}`;
+    console.log('query>>',query,values)
+
     return {query,values};
   },
   //추가
