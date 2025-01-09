@@ -20,7 +20,7 @@ const storeSpendController = {
     const options = req.query;
     console.log('options1', options);
 
-    const allMall = options.allMall 
+    const allMall = options.allMall
     console.log('options2', allMall);
 
     const cols = allMall == 'true' || allMall == true  ? null : {st_table:options.table}
@@ -29,10 +29,15 @@ const storeSpendController = {
     if (options?.search) {
       const colnameSql = await sqlHelper.colnames(VIEW_TABLE.SPEND);
       const [colnames] = await db.execute(colnameSql);
-      console.log('colnames',colnames)
       const searchCols = colnames.map((c) => {
         return c.COLUMN_NAME;
       });
+      let idx = searchCols.indexOf('mb_id'); searchCols.splice(idx,1);
+      idx = searchCols.indexOf('sp_ip'); searchCols.splice(idx,1);
+      idx = searchCols.indexOf('st_table'); searchCols.splice(idx,1);
+      idx = searchCols.indexOf('st_title'); searchCols.splice(idx,1);
+      idx = searchCols.indexOf('sp_id'); searchCols.splice(idx,1);
+      idx = searchCols.indexOf('sp_day'); searchCols.splice(idx,1);
       console.log('searchCols',searchCols)
       const { query, values } = await sqlHelper.selectLimit(VIEW_TABLE.SPEND,options,cols,null,searchCols);
       console.log('query, values',query, values)
