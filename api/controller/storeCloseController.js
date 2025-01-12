@@ -4,35 +4,69 @@ const sqlHelper = require("../../util/sqlHelper");
 const qs = require("qs");
 const { ip, ipv6, mac } = require("address");
 const moment = require("../../util/moment");
-const { getIp } = require("../../util/lib");
+const { getIp, isEmpty, resData } = require("../../util/lib");
+const STATUS = require("../../util/STATUS");
 
 const storeCloseController = {
-  //전체 카테고리들 get
-  categories: async function (req) {
-    const cols = req.body;
-    const { query, values } = await sqlHelper.selectLimit(
-      VIEW_TABLE.OPTIONS,
-      null,
-      cols
-    );
-    const [rows] = await db.execute(query, values);
-    return rows;
-  },
+
   //전체목록갯수 get
   listCount: async function () {
-    const query = await sqlHelper.selectSimpleCount(VIEW_TABLE.EXPENDITURES);
+    const query = await sqlHelper.selectSimpleCount(VIEW_TABLE.CLOSE);
     const [[{ rowsCount }]] = await db.execute(query);
     return rowsCount;
   },
   //페이지 목록 get
   list: async function (req) {
-    const options = req.query;
-    const { query } = await sqlHelper.selectLimit(
-      VIEW_TABLE.EXPENDITURES,
-      options
-    );
-    const [rows] = await db.execute(query);
-    return rows;
+    const options = req.body;
+    console.log('options1', options);
+
+    const allMall = options.allMall
+    console.log('options2', allMall);
+
+    const cols = allMall == 'true' || allMall == true  ? null : {st_table:options.table}
+
+    console.log('options3',options, cols);
+    if (options?.search) {
+      const colnameSql = await sqlHelper.colnames(VIEW_TABLE.CLOSE);
+      const [colnames] = await db.execute(colnameSql);
+      const searchCols = colnames.map((c) => {
+        return c.COLUMN_NAME;
+      });
+      let idx = searchCols.indexOf('mb_id'); searchCols.splice(idx,1);
+      idx = searchCols.indexOf('cl_ip'); searchCols.splice(idx,1);
+      idx = searchCols.indexOf('st_table'); searchCols.splice(idx,1);
+      idx = searchCols.indexOf('st_title'); searchCols.splice(idx,1);
+      idx = searchCols.indexOf('cl_id'); searchCols.splice(idx,1);
+      idx = searchCols.indexOf('cl_day'); searchCols.splice(idx,1);
+      console.log('searchCols',searchCols)
+      const { query, values } = await sqlHelper.selectLimit(VIEW_TABLE.CLOSE,options,cols,null,searchCols);
+      console.log('query, values',query, values)
+      const [rows] = await db.execute(query, values);
+      console.log('rows',rows)
+      const cnt = await sqlHelper.selectSimpleCount(VIEW_TABLE.CLOSE, options,cols, searchCols)
+      const [[{ rowsCount }]] = await db.execute(cnt.query,cnt.values);
+      const data = {rowsCount,rows};
+      return {
+        status: STATUS.S200.result, //status
+        message: STATUS.S200.resultDesc, //message
+        resDate: moment().format("YYYY-MM-DD HH:mm:ss"),
+        data, //data
+      };
+
+    }else{
+      const { query,values } = await sqlHelper.selectLimit(VIEW_TABLE.CLOSE, options, cols);
+      const [rows] = await db.execute(query,values);
+      const cnt = await sqlHelper.selectSimpleCount(VIEW_TABLE.CLOSE, null, cols)
+      const [[{ rowsCount }]] = await db.execute(cnt.query,cnt.values);
+      console.log('rowsCount',rowsCount);
+      const data = {rowsCount,rows};
+        return {
+          status: STATUS.S200.result, //status
+          message: STATUS.S200.resultDesc, //message
+          resDate: moment().format("YYYY-MM-DD HH:mm:ss"),
+          data, //data
+        };
+    }
   },
   //where절 목록 post
   listByWhere: async function (req) {
@@ -44,7 +78,7 @@ const storeCloseController = {
       type: ["desc"],
     };
     const { query, values } = await sqlHelper.selectLimit(
-      VIEW_TABLE.EXPENDITURES,
+      VIEW_TABLE.CLOSE,
       options,
       cols
     );
@@ -58,7 +92,7 @@ const storeCloseController = {
     //where절
     const cols = req.body;
     const { query, values } = await sqlHelper.selectLimit(
-      VIEW_TABLE.EXPENDITURES,
+      VIEW_TABLE.CLOSE,
       (options = null),
       cols,
       func
@@ -68,13 +102,18 @@ const storeCloseController = {
   },
   //추가 post
   add: async function (req) {
-    const payload = {
+    const at = moment().format("YYYY-MM-DD HH:mm:ss");
+    let payload = {
       ...req.body,
       cl_ip: getIp(req),
       mb_id: req.user[0].mb_id,
+      cl_create_at: at, //시간새로
+      cl_update_at: at, //시간새로
     };
     const { query, values } = await sqlHelper.insert(TABLE.STORE_CLOSE,payload);
+    console.log('query,value',query,values)
     const [insertDone] = await db.execute(query, values);
+    console.log('insertDone',insertDone)
     if(insertDone.affectedRows==1){
       payload.cl_id=insertDone.insertId;
       delete payload.cl_ip;
@@ -83,47 +122,49 @@ const storeCloseController = {
   },
   //수정삭제 put
   edit: async function (req) {
-    const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
-    const payload = {
-      ep_main: req.body.ep_main,
-      ep_category: req.body.ep_category.toString(),
-      ep_fee: req.body.ep_fee,
-      ep_fee_date: req.body.ep_fee_date,
-      ep_sender: req.body.ep_sender,
-      ep_receiver: req.body.ep_receiver,
-      ep_receiver_phone: req.body.ep_receiver_phone,
-      ep_receiver_addr1: req.body.ep_receiver_addr1,
-      ep_receiver_addr2: req.body.ep_receiver_addr2,
-      ep_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
-      ep_ip_at: ip(),
-      mb_id: "hanna",
+    const at = moment().format("YYYY-MM-DD HH:mm:ss");
+    const data = req.body;
+    const cl_id = data.cl_id;
+    const index = data.index;
+    delete data.index;
+    delete data.cl_id;
+    data.cl_close = Number(data.cl_close);
+    let payload = {
+      ...data,
+      cl_ip: getIp(req),
+      mb_id: req.user[0].mb_id,
+      cl_update_at: at, //시간새로
     };
-    const { query, values } = await sqlHelper.edit(
-      TABLE.EXPENDITURES,
-      payload,
-      cols
-    );
+    console.log('payload>>>>>',payload);
+    const { query, values } = await sqlHelper.edit(TABLE.STORE_CLOSE,payload,{cl_id});
     const [editDone] = await db.execute(query, values);
-    return editDone;
+    if(editDone.affectedRows==1){
+      payload.index = index;
+      console.log('payload>>>>>',editDone);
+
+      return payload;
+    }else{
+
+    }
   },
   //수정삭제 put
   del: async function (req) {
-    const cols = {
-      ep_id: req.body.ep_id,
+    const data = req.body;
+    const cl_id = data.cl_id;
+    delete data.index;
+    delete data.cl_id;
+
+    const at = moment().format("YYYY-MM-DD HH:mm:ss");
+    let payload = {
+      ...data,
+      cl_use:0,
+      cl_ip: getIp(req),
+      mb_id: req.user[0].mb_id,
+      cl_update_at: at, //시간새로
     };
-    const payload = {
-      ep_use: 0,
-      ep_update_at: moment().format("YYYY-MM-DD HH:mm:ss"), //시간새로
-      ep_ip_at: ip(),
-      mb_id: "hanna",
-    };
-    const { query, values } = await sqlHelper.edit(
-      TABLE.EXPENDITURES,
-      payload,
-      cols
-    );
-    const [editDone] = await db.execute(query, values);
-    return editDone;
+    const { query, values } = await sqlHelper.edit(TABLE.STORE_CLOSE,payload,{cl_id});
+    const [delDone] = await db.execute(query, values);
+    return delDone;
   },
 };
 module.exports = storeCloseController;

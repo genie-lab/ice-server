@@ -17,7 +17,7 @@ const storeSpendController = {
   },
   //페이지 목록 get
   list: async function (req) {
-    const options = req.query;
+    const options = req.body;
     console.log('options1', options);
 
     const allMall = options.allMall

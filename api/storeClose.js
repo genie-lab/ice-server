@@ -13,7 +13,7 @@ router.get("/listCount", async (req, res) => {
   res.json(result);
 });
 //페이지 목록
-router.get("/list", async (req, res) => {
+router.post("/list", async (req, res) => {
   const result = await modelCall(storeCloseController.list, req);
   res.json(result);
 });
