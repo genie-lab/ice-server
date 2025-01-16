@@ -34,6 +34,12 @@ router.get("/list", async (req, res) => {
   const result = await modelCall(popupController.list, req);
   res.json(result);
 });
+
+//where절 목록
+router.get("/listByWhere", async (req, res) => {
+  const result = await modelCall(popupController.listByWhere, req);
+  res.json(result);
+});
 //where절 목록
 router.get("/displayList", async (req, res) => {
   const result = await modelCall(popupController.displayList, req);

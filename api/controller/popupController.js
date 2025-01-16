@@ -236,6 +236,13 @@ const popupController = {
       return { rows, rowsCount };
     }
   },
+  //where절 목록 post
+  listByWhere: async function (req) {
+    const cols={pu_id:Number(req.query?.id),}
+    const { query, values } = await sqlHelper.selectLimit(TABLE.POPUP,null,cols);
+    const [rows] = await db.execute(query, values);
+    return rows;
+  },
   //where절 목록
   displayList: async (req) => {
     // 날짜 지난 것 걸러내기
