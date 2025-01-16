@@ -43,6 +43,7 @@ const popupController = {
       ...req.body,
       pu_create_at: at,
       pu_update_at: at,
+      mb_id:req.user[0].mb_id
     };
     // console.log(payload);
     //파일추가
@@ -87,7 +88,7 @@ const popupController = {
   edit: async (req) => {
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
     const payload = {
-      mb_name: req.body.mb_name,
+      mb_id: req.body.mb_id,
       pu_comment: req.body.pu_comment,
       pu_content: req.body.pu_content,
       pu_id: req.body.pu_id,
@@ -219,29 +220,16 @@ const popupController = {
     if (options?.search) {
       const colnameSql = await sqlHelper.colnames(TABLE.POPUP);
       const [colnames] = await db.execute(colnameSql);
-      const searchCols = colnames.map((c) => {
-        return c.COLUMN_NAME;
-      });
+      const searchCols = colnames.map((c) => {return c.COLUMN_NAME;});
+      const countQuery = await sqlHelper.selectSimpleCount(TABLE.POPUP,options,searchCols);
+      const [[{ rowsCount }]] = await db.execute(countQuery.query,countQuery.values);
 
-      const countQuery = await sqlHelper.selectSimpleCount(
-        TABLE.POPUP,
-        options,
-        searchCols
-      );
-      const [[{ rowsCount }]] = await db.execute(countQuery);
-
-      const { query } = await sqlHelper.selectLimit(
-        TABLE.POPUP,
-        options,
-        null,
-        null,
-        searchCols
-      );
+      const { query } = await sqlHelper.selectLimit(TABLE.POPUP,options,null,null,searchCols);
       const [rows] = await db.execute(query);
       return { rows, rowsCount: rowsCount };
     } else {
       const countQuery = await sqlHelper.selectSimpleCount(TABLE.POPUP);
-      const [[{ rowsCount }]] = await db.execute(countQuery);
+      const [[{ rowsCount }]] = await db.execute(countQuery.query,countQuery.values);
       const { query } = await sqlHelper.selectLimit(TABLE.POPUP, options);
       const [rows] = await db.execute(query);
       // console.log(rows);
@@ -254,7 +242,9 @@ const popupController = {
     // pu_display == 1인 것만 가져오기
     // pu_use == 1인 것민 가져오기
     // 보여줄 최신 날짜 순으로 정렬하기
-    const query = ` select * from popup where pu_start_date >= now() and pu_use=1 and pu_display=1 order by pu_start_date asc `;
+    const yesterday = moment().subtract(1, 'day').format('YYYY-MM-DD')
+    const query = ` select * from popup where pu_start_date > '${yesterday} 23:59:59' and pu_use=1 and pu_display=1 order by pu_start_date asc `;
+    console.log(query);
     const [rows] = await db.execute(query);
     // console.log(rows);
     return rows;

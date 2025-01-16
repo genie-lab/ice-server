@@ -35,7 +35,7 @@ const sqlHelper = {
       const type = options?.searchType;
       const cols = options?.searchCols;
       const str = options?.search;
-      
+
       // //서치할때는 전체페이지에서 찾기
       let arr, like, regexp, searchKey;
       switch (type) {
@@ -56,7 +56,7 @@ const sqlHelper = {
               for(const col of cols){ // 1 <= col ~ 5 <= col
                 const str = ` ( ${col} between '${arr[0]}' and '${moment(arr[1]).add(1,'days').format('YYYY-MM-DD')}' ) `
                 console.log('str',str)
-                searchKey.push(str)  
+                searchKey.push(str)
               }
             }
             if(arr?.length==1){
@@ -66,7 +66,7 @@ const sqlHelper = {
               for(const col of cols){ // 1 <= col ~ 5 <= col
                 const str = ` ( ${col} between '${arr[0]}' and '${arr[1]}' ) `
                 console.log('str',str)
-                searchKey.push(str)  
+                searchKey.push(str)
               }
             }
           }
@@ -99,7 +99,7 @@ const sqlHelper = {
             search = searchKey.join(" or ");
           }
           break;
-      
+
         default:
           arr = str.split(" ");
           like = arr.join("|");
@@ -140,7 +140,7 @@ const sqlHelper = {
       key = search ? `WHERE ${search}` : '';
     }
     query = `${query} ${key} ${orderby} ${limit}`;
-    console.log('query>>>>',query)
+    console.log('>',query)
     return { query, values };
   },
 
@@ -154,7 +154,7 @@ const sqlHelper = {
       const type = options?.searchType;
       const cols = options?.searchCols;
       const str = options?.search;
-      
+
       // //서치할때는 전체페이지에서 찾기
       let arr, like, regexp, searchKey;
       switch (type) {
@@ -175,7 +175,7 @@ const sqlHelper = {
               for(const col of cols){ // 1 <= col ~ 5 <= col
                 const str = ` ( ${col} between '${arr[0]}' and '${moment(arr[1]).add(1,'days').format('YYYY-MM-DD')}' ) `
                 console.log('str',str)
-                searchKey.push(str)  
+                searchKey.push(str)
               }
             }
             if(arr?.length==1){
@@ -185,7 +185,7 @@ const sqlHelper = {
               for(const col of cols){ // 1 <= col ~ 5 <= col
                 const str = ` ( ${col} between '${arr[0]}' and '${arr[1]}' ) `
                 console.log('str',str)
-                searchKey.push(str)  
+                searchKey.push(str)
               }
             }
           }
@@ -218,7 +218,7 @@ const sqlHelper = {
             search = searchKey.join(" or ");
           }
           break;
-      
+
         default:
           arr = str.split(" ");
           like = arr.join("|");
