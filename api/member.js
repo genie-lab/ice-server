@@ -97,11 +97,6 @@ router.post("/leave", async (req, res) => {
   const result = await modelCall(memberController.leave, req);
   res.json(result);
 });
-// 회원수정전 비밀번호 재확인
-router.post("/checkPassword", async (req, res) => {
-  const result = await modelCall(memberController.checkPassword, req);
-  res.json(result);
-});
 //아이디찾기
 router.post("/findId", async (req, res) => {
   const result = await modelCall(memberController.findId, req); //name email

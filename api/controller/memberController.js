@@ -73,7 +73,6 @@ const memberController = {
     delete payload.mb_login_at;
     //password 암호화하기
     payload.mb_password = jwt.generatePassword(payload.mb_password);
-    console.log("payload", payload);
     //파일추가
     const file = req?.files[0];
     if (file) {
@@ -88,9 +87,7 @@ const memberController = {
       payload.mb_photo = "https://picsum.photos/500/500";
     }
     const { query, values } = await sqlHelper.insert(TABLE.MEMBER, payload);
-    console.log(query, values);
     const [insertDone] = await db.execute(query, values);
-    console.log(insertDone);
 
     if (insertDone?.affectedRows == 1 && payload.mb_photo && file) {
       //files에 저장하기
@@ -131,9 +128,7 @@ const memberController = {
     const adminPass = payload?.changePass;
     delete payload?.changePass;
     if(adminPass){
-      console.log(payload.mb_password);
-      console.log(payload.mb_comment);
-
+      await memberController.adminPassMailer(payload.mb_id,payload.mb_email,req.headers.origin)
     }
     // 비밀번호 수정시 암호화
     if (payload?.mb_password) {
@@ -203,13 +198,7 @@ const memberController = {
     }
 
     const cols = req.query;
-    // const cols = qs.parse(req._parsedUrl.search, { ignoreQueryPrefix: true });
-    console.log("cols", cols);
-    console.log("payload", payload);
-
     const { query, values } = await sqlHelper.edit(TABLE.MEMBER, payload, cols);
-    console.log("test", query, values);
-
     const [editDone] = await db.execute(query, values);
     if (editDone?.affectedRows == 1 && payload.mb_photo && file) {
       //files에 저장하기
@@ -264,7 +253,6 @@ const memberController = {
       cols,
       func
     );
-    console.log(query, values);
     const [[{ duplCount }]] = await db.execute(query, values);
     return duplCount;
   },
@@ -294,7 +282,6 @@ const memberController = {
       //mb_password 삭제
       for (idx in rows) {
         clearMemberField(rows[idx]);
-        // console.log(rows[idx]);
       }
       return { rows, rowsCount: rowsCount };
     } else {
@@ -305,7 +292,6 @@ const memberController = {
       //mb_password 삭제
       for (idx in rows) {
         clearMemberField(rows[idx]);
-        // console.log(rows[idx]);
       }
       return { rows, rowsCount };
     }
@@ -317,7 +303,6 @@ const memberController = {
       null,
       cols
     );
-    // console.log("query, values", query, values);
     const [rows] = await db.execute(query, values);
     return rows;
   },
@@ -336,7 +321,6 @@ const memberController = {
       options,
       cols
     );
-    console.log("query, values", query, values);
     const [rows] = await db.execute(query, values);
     return rows;
   },
@@ -344,7 +328,6 @@ const memberController = {
   loginMember: async (req) => {
     // 아이디 패스워드로 해당 레코드 찾아 로그인시간 업데이트
     const { mb_id, mb_password } = req.body;
-    // console.log(mb_id, mb_password);
     const password = jwt.generatePassword(mb_password);
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
     const ip = getIp(req);
@@ -361,9 +344,7 @@ const memberController = {
     };
 
     const { query, values } = await sqlHelper.edit(TABLE.MEMBER, payload, cols);
-    // console.log("query, values", query, values);
     const editDone = await db.execute(query, values);
-    // console.log("editDone", editDone);
     return payload;
   },
 
@@ -384,10 +365,46 @@ const memberController = {
       cols,
       funcs
     );
-    console.log("query, values", query, values);
     const [[rows]] = await db.execute(query, values);
-    console.log("rows", rows);
     return rows;
+  },
+  //admin이 비밀번호초기화 메일보내기
+  adminPassMailer: async (mb_id,mb_email,origin) => {
+    // id,이메일이 들어오면 일치여부 확인 후 메일확인하슈 노티보내면서 리다이렉트 페이지 메일로 전송
+    const cols = {mb_id:mb_id,mb_email:mb_email};
+    const funcs = ["COUNT(*) AS cnt "];
+    const { query, values } = await sqlHelper.selectLimit(TABLE.MEMBER,null,cols,funcs);
+    const [[{ cnt }]] = await db.execute(query, values);
+
+    if (cnt == 0) {
+      return { cnt, err: "일치하는 회원이 없습니다" };
+    }
+    // :hash
+    const ma_hash = jwt.getRandomToken(16);
+
+    // 보낼 url 만들기 http://localhost:8888/editPass/:hash
+    // html 내용변경
+    const ma_to = cols.mb_email; //받는사람이름
+    const company = "아이스관리시스템"; //보내는쪽
+    const ma_subject = `${company} 비밀번호 찾기용 이메일 입니다.`;
+    const link = `${origin}/editPass/${ma_hash}`; //이동url
+    const ma_expire_at = moment().add("30", "m").format("YYYY-MM-DD HH:mm:ss"); //만료시각
+    let ma_content = fs.readFileSync(__dirname + "/findPwForm.html").toString();
+
+    ma_content = ma_content.replace(/{{company}}/g, company);
+    ma_content = ma_content.replace(/{{link}}/g, link);
+    ma_content = ma_content.replace(/{{time}}/g, ma_expire_at);
+
+    // 메일보내기 & 리턴
+    const from = `${company} 관리자`;
+
+    await senderMailer(from, ma_to, ma_subject, ma_content);
+
+    //db저장
+    const payload = {ma_to,ma_type: 1,ma_hash,ma_subject,ma_content,  ma_expire_at,};
+    const insert = await sqlHelper.insert(TABLE.MAILER, payload);
+    const [insertDone] = await db.execute(insert.query, insert.values);
+    return insertDone;
   },
   //비밀번호찾기
   findPw: async (req) => {
@@ -397,14 +414,8 @@ const memberController = {
       mb_email: req.body.mb_email,
     };
     const funcs = ["COUNT(*) AS cnt "];
-    const { query, values } = await sqlHelper.selectLimit(
-      TABLE.MEMBER,
-      null,
-      cols,
-      funcs
-    );
+    const { query, values } = await sqlHelper.selectLimit(TABLE.MEMBER,null,cols,funcs);
     const [[{ cnt }]] = await db.execute(query, values);
-    console.log('cnt>>>',cnt);
     if (cnt == 0) {
       return { cnt, err: "일치하는 회원이 없습니다" };
     }
@@ -424,22 +435,13 @@ const memberController = {
     ma_content = ma_content.replace(/{{link}}/g, link);
     ma_content = ma_content.replace(/{{time}}/g, ma_expire_at);
 
-
-
     // 메일보내기 & 리턴
     const from = `${company} 관리자`;
 
     await senderMailer(from, ma_to, ma_subject, ma_content);
 
     //db저장
-    const payload = {
-      ma_to,
-      ma_type: 1,
-      ma_hash,
-      ma_subject,
-      ma_content,
-      ma_expire_at,
-    };
+    const payload = {ma_to,ma_type: 1,ma_hash,ma_subject,ma_content,  ma_expire_at,};
     const insert = await sqlHelper.insert(TABLE.MAILER, payload);
     const [insertDone] = await db.execute(insert.query, insert.values);
     return insertDone;
@@ -447,7 +449,6 @@ const memberController = {
   // 비밀번호수정
   editPassword: async (req) => {
     const { password, ma_hash } = req.body;
-    // console.log("password, ma_hash", password, ma_hash);
     const delQuery = `DELETE FROM ${TABLE.MAILER} WHERE ma_type=1 AND ma_expire_at < NOW()`;
     await db.execute(delQuery);
     // 유효시간 안에 해쉬로 검색
@@ -456,29 +457,24 @@ const memberController = {
       values: [ma_hash],
     };
     const [[row]] = await db.execute(sql.query, sql.values);
-    // console.log(row);
     if (!row) {
       return "시간이 만료되었거나 이미 처리되었습니다.";
     }
 
     const mb_email = row.ma_to;
     const mb_password = await jwt.generatePassword(password);
-    // console.log(mb_password);
 
     const { query, values } = await sqlHelper.edit(
       TABLE.MEMBER,
       { mb_password },
       { mb_email }
     );
-    // console.log(query, values);
 
     const [editDone] = await db.execute(query, values);
-    // console.log(query, editDone);
 
     // // 처리결과 삭제 해쉬지우기
     const del = await sqlHelper.del(TABLE.MAILER, { ma_hash });
     const [delDone] = await db.execute(del.query, del.values);
-    console.log(delDone);
     return editDone.affectedRows == 1 && delDone.affectedRows == 1;
   },
   //google login screen
