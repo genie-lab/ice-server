@@ -373,10 +373,12 @@ const boardController = {
       }
       delCnt += await boardController.removeItem(bo_table, wr_id,wr_grp,ip);
     } else {
+
       if (children?.length == 0) {
 
         // 답글 유무,
-        const replys = await sqlHelper.selectLimit(table,null,{ wr_reply: wr_id },["wr_id"]);
+        const repl = await sqlHelper.selectLimit(table,null,{ wr_reply: wr_id },["wr_id"]);
+        const [replys] = await db.execute(repl.query,repl.values)
 
         if (replys.length == 0) {
           // 댓글이 없으면

@@ -99,8 +99,7 @@ router.put("/:bo_table/edit", upload().any(), async (req, res) => {
   }
 
   const data = req.body;
-  console.log('edit data',data.token);
-  let modifyMsg = await isModify(bo_table,member,data,req.session?.checkToken,data.token);
+  let modifyMsg = await isModify(bo_table,member,data,req.session.checkToken,data.token);
   delete data.token;
 
   if (modifyMsg) {
@@ -120,15 +119,15 @@ router.put("/:bo_table/edit", upload().any(), async (req, res) => {
 //게시글 삭제*
 router.put("/:bo_table/:wr_id/:wr_grp/del", async (req, res) => {
   const { bo_table, wr_id,wr_grp } = req.params;
-  const { token } = req.body;
+  const {data,token} = req.body;
   const member = await isMember(req);
   const checkToken = req.session.checkToken;
   const ip = getIp(req);
   req.session.checkToken = null;
-  const modifyMsg = await isModify(bo_table, member, null, checkToken, token);
-  // async function isModify(bo_table, member, data, checkToken, token) { data.mb_id == 0
+  const modifyMsg = await isModify(bo_table, member, data, checkToken, token);
   if (modifyMsg) {return res.json({ err: modifyMsg });}
   const result = await modelCall(boardController.del, bo_table,wr_id,wr_grp,member,ip);
+  console.log('result',result);
   res.json(result);
 });
 
