@@ -99,6 +99,7 @@ router.put("/:bo_table/edit", upload().any(), async (req, res) => {
   }
 
   const data = req.body;
+  console.log('edit data',data.token);
   let modifyMsg = await isModify(bo_table,member,data,req.session?.checkToken,data.token);
   delete data.token;
 
@@ -144,8 +145,9 @@ router.put("/:bo_table/:wr_id/:wr_grp/del", async (req, res) => {
 // });
 
 //게시물 목록을 가져옴*
-router.get("/:bo_table/list", async (req, res) => {
-  const { bo_table } = req.params;
+router.post("/:bo_table/list", async (req, res) => {
+  const { bo_table } = req.body;
+  const { options } = req.body;
   const host = `${req.protocol}://${req.headers.host}`;
   const member = await isMember(req);
   const config = await modelCall(boardController.getConfig, bo_table);
@@ -159,7 +161,7 @@ router.get("/:bo_table/list", async (req, res) => {
       )
     );
   }
-  const result = await modelCall(boardController.list, config,bo_table,req.query,member,host);
+  const result = await modelCall(boardController.list, config,bo_table,options,member,host);
   res.json(result);
 });
 

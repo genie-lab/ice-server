@@ -52,10 +52,10 @@ const boardController = {
     options.type = [];
     for (const sort of config.bo_sort) {
       options.sortBy.push(sort.by);
-      options.type.push(sort.desc);
+      options.type.push(sort.desc == 0 ? 'desc' : 'asc');
     }
     const cols = ["wr_id", "wr_parent", "wr_title", "wr_category"];
-    const { query, values } = await sqlHelper.selectLimit(`${TABLE.WRITE}${table}`,options,cols);
+    const { query, values } = await sqlHelper.selectLimit(`${table}`,options,null, cols);
     const [rows] = await db.execute(query, values);
     return rows;
   },
@@ -447,10 +447,12 @@ const boardController = {
     // search
     // const options = req.query;
     const wr_name = options?.writer ? { wr_name: options?.writer } : null;
+    const wr_category = options?.cate ? { wr_category: options?.cate } : null;
     const cols = {
-      wr_name,
+      ...wr_name,
       wr_use: 1,
       wr_reply:0,
+      ...wr_category
     };
     cols["wr_name"] == null ? delete cols.wr_name : cols["wr_name"];
     delete options?.writer;
@@ -462,8 +464,8 @@ const boardController = {
         return c.COLUMN_NAME;
       });
       const { query, values } = await sqlHelper.selectLimit(table,options,cols,null,searchCols);
-      const [rows] = await db.execute(query, values);
 
+      const [rows] = await db.execute(query, values);
 
       // 썸네일 이미지 연결 - 게시물에 연관 파일을 붙인다.
       for (const row of rows) {
@@ -531,11 +533,10 @@ const boardController = {
 
   //수정권한 검사*
   checkItem: async function (bo_table, wr_id, password) {
-    const wr_password = await generatePassword(password);
+    const wr_password = jwt.generatePassword(password);
     const table = `${TABLE.WRITE}${bo_table}`;
-    const [[{cnt}]] = await sqlHelper.selectLimit(table, null, { wr_id, wr_password }, [
-      "COUNT(*) as cnt",
-    ]);
+    const {query,values} = await sqlHelper.selectLimit(table, null, { wr_id, wr_password }, ["COUNT(*) as cnt"]);
+    const [[{cnt}]] = await db.execute(query,values);
     return cnt;
   },
 
