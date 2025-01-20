@@ -67,7 +67,7 @@ const searchController = {
   // search에서 table, wr_id 추출
   async searchByBoard(bo_table, text) {
     // search.vue에서 검색시 게시판검색으로 들어옴
-    const temp = `SELECT wr_id FROM {{bo_table}} WHERE wr_reply=0 AND wr_use=1 AND (wr_title LIKE '%${text}%' OR wr_content LIKE '%${text}%')`;
+    const temp = `SELECT wr_id FROM {{bo_table}} WHERE wr_reply=0 AND wr_use=1 AND (wr_title LIKE '%${text}%' OR wr_content LIKE '%${text}%' OR wr_summary LIKE '%${text}%')`;
     const tables = {};
     if (bo_table) {
       const sql = temp.replace("{{bo_table}}", `${TABLE.WRITE}${bo_table}`);

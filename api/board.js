@@ -5,10 +5,8 @@ const STATUS = require("../util/STATUS");
 const moment = require("../util/moment");
 const { modelCall, getIp, resData } = require("../util/lib");
 const { LV, isGrant } = require("../util/level");
-const ssrTokenAuth = require("../plugins/ssrTokenAuth");
 const randToken = require("rand-token"); //Generate a 16 character alpha-numeric token
 const fs = require("fs");
-const db = require("../plugins/mysql");
 
 /////////////////// 수정 접근 권한 확인 ////////////////// isModify(bo_table, req.user[0], data, checkToken, token);
 async function isModify(bo_table, member, data=null, checkToken, token) {
@@ -144,9 +142,8 @@ router.put("/:bo_table/:wr_id/:wr_grp/del", async (req, res) => {
 // });
 
 //게시물 목록을 가져옴*
-router.post("/:bo_table/list", async (req, res) => {
-  const { bo_table } = req.body;
-  const { options } = req.body;
+router.get("/:bo_table/list", async (req, res) => {
+  const { bo_table } = req.params;
   const host = `${req.protocol}://${req.headers.host}`;
   const member = await isMember(req);
   const config = await modelCall(boardController.getConfig, bo_table);
@@ -160,7 +157,7 @@ router.post("/:bo_table/list", async (req, res) => {
       )
     );
   }
-  const result = await modelCall(boardController.list, config,bo_table,options,member,host);
+  const result = await modelCall(boardController.list, config,bo_table,req.query,member,host);
   res.json(result);
 });
 

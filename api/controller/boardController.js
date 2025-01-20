@@ -183,7 +183,6 @@ const boardController = {
 
     //예전 본문 삽입이미지 삭제하고 DB 업데이트
     const wrImgs = JSON.parse(row.wrImgs);
-
     delete row.wrImgs;
     if (wrImgs?.length > 0) {
       for (let i = 0; i < wrImgs.length; i++) {
@@ -194,6 +193,7 @@ const boardController = {
         }
       }
     }
+
 
 
     //파일추가
@@ -465,7 +465,8 @@ const boardController = {
       const searchCols = colnames.map((c) => {
         return c.COLUMN_NAME;
       });
-      const { query, values } = await sqlHelper.selectLimit(table,options,cols,null,searchCols);
+      const searchColumns= ['wr_title'/**,'wr_summary','wr_content' */]
+      const { query, values } = await sqlHelper.selectLimit(table,options,cols,null,searchColumns);
 
       const [rows] = await db.execute(query, values);
 
@@ -477,7 +478,7 @@ const boardController = {
         await boardController.addGoodFlag(bo_table, row, member);
         row.thumb = getImage(config, row, host);
       }
-      const cnt = await sqlHelper.selectSimpleCount(table, options, cols)
+      const cnt = await sqlHelper.selectSimpleCount(table, options, cols,searchColumns)
       const [[{ rowsCount }]] = await db.execute(cnt.query,cnt.values);
 
       const data = {rowsCount,rows};
