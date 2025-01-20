@@ -9,12 +9,6 @@ const STATUS = require("../../util/STATUS");
 
 const storeCloseController = {
 
-  //전체목록갯수 get
-  listCount: async function () {
-    const query = await sqlHelper.selectSimpleCount(VIEW_TABLE.CLOSE);
-    const [[{ rowsCount }]] = await db.execute(query);
-    return rowsCount;
-  },
   //페이지 목록 get
   list: async function (req) {
     const options = req.body;
@@ -61,38 +55,7 @@ const storeCloseController = {
         };
     }
   },
-  //where절 목록 post
-  listByWhere: async function (req) {
-    const cols = req.body;
-    const options = {
-      rowsPerPage: "50",
-      page: "1",
-      sortBy: ["ep_update_at"],
-      type: ["desc"],
-    };
-    const { query, values } = await sqlHelper.selectLimit(
-      VIEW_TABLE.CLOSE,
-      options,
-      cols
-    );
-    const [rows] = await db.execute(query, values);
-    return rows;
-  },
-  //중복체크 post
-  duplCheck: async function (req) {
-    //함수
-    const func = ["count(*) as duplCount"];
-    //where절
-    const cols = req.body;
-    const { query, values } = await sqlHelper.selectLimit(
-      VIEW_TABLE.CLOSE,
-      (options = null),
-      cols,
-      func
-    );
-    const [[{ duplCount }]] = await db.execute(query, values);
-    return duplCount;
-  },
+
   //추가 post
   add: async function (req) {
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
