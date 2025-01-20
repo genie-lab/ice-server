@@ -20,7 +20,6 @@ router.post("/list", async (req, res) => {
 //where절 목록
 router.post("/listByWhere", async (req, res) => {
   const result = await modelCall(storeSpendController.listByWhere, req);
-  // const result = await storeSpendController.listByWhere(req);
   res.json(result);
 });
 //중복검사

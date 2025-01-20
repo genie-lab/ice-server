@@ -10,17 +10,7 @@ const { getIp } = require("../../util/lib");
 
 
 const admBoardController = {
-  //전체 카테고리들 get
-  categories: async function (req) {
-    const cols = req.body;
-    const { query, values } = await sqlHelper.selectLimit(
-      TABLE.BOARD,
-      null,
-      cols
-    );
-    const [rows] = await db.execute(query, values);
-    return rows;
-  },
+
   //전체목록갯수 get
   listCount: async function () {
     const sql = await sqlHelper.selectSimpleCount(TABLE.STORE);

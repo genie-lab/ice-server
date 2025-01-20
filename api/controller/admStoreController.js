@@ -10,17 +10,7 @@ const { getIp } = require("../../util/lib");
 
 
 const admStoreController = {
-  //전체 카테고리들 get =>컨피그에
-  categories: async function (req) {
-    const cols = req.body;
-    const { query, values } = await sqlHelper.selectLimit(
-      TABLE.STORE,
-      null,
-      cols
-    );
-    const [rows] = await db.execute(query, values);
-    return rows;
-  },
+
   //전체목록갯수 get
   listCount: async function () {
     const sql = await sqlHelper.selectSimpleCount(TABLE.STORE);
@@ -169,17 +159,8 @@ const admStoreController = {
     } catch (e) {}
 
   },
-  //정렬
-  align: async function (req){
-    const st_table = req.query
-    let st_cate = req.body
-    const st_category = JSON.stringify(st_cate)
-    // 카테고리 업데이트
-    const { query, values } = await sqlHelper.edit(TABLE.STORE, {st_category}, st_table);
-    const [editDone] = await db.execute(query, values);
-    return editDone;
-  },
-  //게시판글 삭제 put
+
+  //게시판글 삭제 내부용 put
   delBoardRow: async function (wr_table, wr_id ,req) {
     const payload = {
       wr_use: 0,
