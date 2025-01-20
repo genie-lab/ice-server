@@ -12,7 +12,6 @@ const db = require("../plugins/mysql");
 
 /////////////////// 수정 접근 권한 확인 ////////////////// isModify(st_table, req.user[0], data, checkToken, token);
 async function isModify(st_table, member, data=null, checkToken, token) {
-  // console.log("checkToken, token", checkToken, token);
   let msg = "수정권한이 없습니다";
   if (member) {
     //관리자이거나 자신이 작성한 글이면
@@ -62,7 +61,6 @@ router.get("/:st_table/menuList", async (req, res) => {
 //게시글 추가*
 router.post("/:st_table/add", upload().any(), async (req, res) => {
   const { st_table } = req.params;
-  // console.log('req.files',req.files);
   const config = await modelCall(storeController.getConfig, st_table);
   const grant = isGrant(req, config.st_write_level);
   if (!grant) {
@@ -75,9 +73,7 @@ router.post("/:st_table/add", upload().any(), async (req, res) => {
     );
   }
   const data = req.body;
-  // console.log("data", req.files);
   data.st_ip = getIp(req);
-  // console.log("data.st_ip", data.st_ip);
   const result = await modelCall(storeController.add, st_table,data,req);
   res.json(result);// st_id; 글게시번호
 });
@@ -149,7 +145,6 @@ router.post("/:st_table/list", async (req, res) => {
   const { close, spend } = req?.body;
   const host = `${req.protocol}://${req.headers.host}`;
   const member = await isMember(req);
-  // console.log('member',member);
   const config = await modelCall(storeController.getConfig, st_table);
   const grant = isGrant(req, config.st_list_level);
   if (!grant) {

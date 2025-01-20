@@ -107,7 +107,6 @@ const salesController = {
   },
   //수정삭제 put
   del: async function (req) {
-    console.log(req.body);
     const cols = {
       s_id: req.body.s_id,
     };

@@ -10,7 +10,6 @@ const fs = require("fs");
 
 /////////////////// 수정 접근 권한 확인 ////////////////// isModify(bo_table, req.user[0], data, checkToken, token);
 async function isModify(bo_table, member, data=null, checkToken, token) {
-  // console.log("checkToken, token", checkToken, token);
   let msg = "수정권한이 없습니다";
   if (member) {
     //관리자이거나 자신이 작성한 글이면
@@ -60,7 +59,6 @@ router.get("/:bo_table/menuList", async (req, res) => {
 //게시글 추가*
 router.post("/:bo_table/add", upload().any(), async (req, res) => {
   const { bo_table } = req.params;
-  // console.log('req.files',req.files);
   const config = await modelCall(boardController.getConfig, bo_table);
   const grant = isGrant(req, config.bo_write_level);
   if (!grant) {
@@ -73,9 +71,7 @@ router.post("/:bo_table/add", upload().any(), async (req, res) => {
     );
   }
   const data = req.body;
-  // console.log("data", req.files);
   data.wr_ip = getIp(req);
-  // console.log("data.wr_ip", data.wr_ip);
   const result = await modelCall(boardController.add, bo_table,data,req);
   res.json(result);// wr_id; 글게시번호
 });
@@ -125,7 +121,6 @@ router.put("/:bo_table/:wr_id/:wr_grp/del", async (req, res) => {
   const modifyMsg = await isModify(bo_table, member, data, checkToken, token);
   if (modifyMsg) {return res.json({ err: modifyMsg });}
   const result = await modelCall(boardController.del, bo_table,wr_id,wr_grp,member,ip);
-  console.log('result',result);
   res.json(result);
 });
 

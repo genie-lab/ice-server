@@ -23,7 +23,6 @@ router.get("/list", async (req, res) => {
   result.tags = await modelCall(searchController.tagList);
   result.boards = await modelCall(searchController.boardList);
   const data = result;
-  // console.log("result", result);
   res.json(
     resData(
       STATUS.S200.result,

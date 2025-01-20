@@ -162,7 +162,6 @@ const configController = {
     const data = req.body;
     const sql = await sqlHelper.insert(TABLE.CONFIG, data);
     const [row] = await db.execute(sql.query, sql.values);
-    console.log(row.insertId);
     configController.setConfigItem(data); // 설정다시 로드
     return data;
   },

@@ -44,7 +44,6 @@ router.post("/loginLocal", async (req, res) => {
   passport.authenticate("local", function (err, member, info) {
     // passport 안 done(내용들 , , ); 인증결과 받음
     if (info) {
-      // console.log("info", info);
       // 에러
       res.json(info);
     } else {
@@ -59,12 +58,10 @@ router.post("/loginLocal", async (req, res) => {
         } else {
           //토큰 가져오기
           const token = jwt.getToken(member); //member.mb_id 가져옴
-          // console.log("token~~~~~~~~~", token);
 
           //로그인 업데이트 시간 업데이트
           try {
             const data = await memberController.loginMember(req); // 업데이트 이루어짐
-            // console.log("data", data);
             member.mb_login_at = data.mb_login_at;
             member.mb_login_ip = data.mb_login_ip;
 

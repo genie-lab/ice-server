@@ -75,7 +75,6 @@ require("./plugins/pm2Bus");
 
   //thumbnail
   const thumbnail = require("./plugins/thumbnail");
-  // console.log("__dirname", __dirname);
   app.use("/upload/:_path", thumbnail(path.join(__dirname, "./upload")));
 
   //autoRoute

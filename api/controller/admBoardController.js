@@ -136,7 +136,6 @@ const admBoardController = {
               }
             }
           }
-          // console.log("related del cate item cnt ", delCheck);
         }
       }
 

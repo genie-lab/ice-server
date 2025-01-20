@@ -3,7 +3,6 @@ const moment = require("moment");
 const sqlHelper = {
   //함수만들기 cols는 where절도 같이 들어감
   selectLimit: async function (table = "",options = null,cols = null,funcs = [],searchCols = null) {
-    // console.log('table>>options>>cols>>funcs>>searchCols',table,options,cols,funcs,searchCols)
 
     // const query = `select * from view_bank ORDER BY 'desc' limit 0,1`;
     let query = `select * from ${table}`;
@@ -49,31 +48,24 @@ const sqlHelper = {
 
         case '기간':
           arr = str.split("~"); //arr[0] ror arr[1]
-          console.log('arr>>>>',arr,arr?.length, cols);
           searchKey=[];
           if(arr?.length>0){
             if(arr?.length==2){
               for(const col of cols){ // 1 <= col ~ 5 <= col
                 const str = ` ( ${col} between '${arr[0]}' and '${moment(arr[1]).add(1,'days').format('YYYY-MM-DD')}' ) `
-                console.log('str',str)
                 searchKey.push(str)
               }
             }
             if(arr?.length==1){
               const date = moment(arr[0]).add(1,'days').format('YYYY-MM-DD')
               arr.push(date)
-              console.log('arr',arr)
               for(const col of cols){ // 1 <= col ~ 5 <= col
                 const str = ` ( ${col} between '${arr[0]}' and '${arr[1]}' ) `
-                console.log('str',str)
                 searchKey.push(str)
               }
             }
           }
-          console.log('searchKey>>>>',searchKey);
-
           search = searchKey.join(" or ");
-          console.log('search*****',search)
           break;
 
         case '이상':
@@ -106,9 +98,6 @@ const sqlHelper = {
           regexp = ` regexp '${like}' `;
           searchKey = searchCols.map((s) => { return ` ${s} ${regexp} `; });
           search = searchKey.join(" or ");
-
-          console.log('search~~~~',search)
-
           break;
       }
       search = ` ${search} `;
@@ -140,7 +129,6 @@ const sqlHelper = {
       key = search ? `WHERE ${search}` : '';
     }
     query = `${query} ${key} ${orderby} ${limit}`;
-    console.log('>',query)
     return { query, values };
   },
 
@@ -168,31 +156,24 @@ const sqlHelper = {
 
         case '기간':
           arr = str.split("~"); //arr[0] ror arr[1]
-          console.log('arr>>>>',arr,arr?.length, cols);
           searchKey=[];
           if(arr?.length>0){
             if(arr?.length==2){
               for(const col of cols){ // 1 <= col ~ 5 <= col
                 const str = ` ( ${col} between '${arr[0]}' and '${moment(arr[1]).add(1,'days').format('YYYY-MM-DD')}' ) `
-                console.log('str',str)
                 searchKey.push(str)
               }
             }
             if(arr?.length==1){
               const date = moment(arr[0]).add(1,'days').format('YYYY-MM-DD')
               arr.push(date)
-              console.log('arr',arr)
               for(const col of cols){ // 1 <= col ~ 5 <= col
                 const str = ` ( ${col} between '${arr[0]}' and '${arr[1]}' ) `
-                console.log('str',str)
                 searchKey.push(str)
               }
             }
           }
-          console.log('searchKey>>>>',searchKey);
-
           search = searchKey.join(" or ");
-          console.log('search*****',search)
           break;
 
         case '이상':
@@ -225,9 +206,6 @@ const sqlHelper = {
           regexp = ` regexp '${like}' `;
           searchKey = searchCols.map((s) => { return ` ${s} ${regexp} `; });
           search = searchKey.join(" or ");
-
-          console.log('search~~~~',search)
-
           break;
       }
       search = ` ${search} `;
@@ -260,8 +238,6 @@ const sqlHelper = {
     }
 
     const query = `select count(*) AS rowsCount from ${table} ${key}`;
-    console.log('query>>',query,values)
-
     return {query,values};
   },
   //추가

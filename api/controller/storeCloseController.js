@@ -18,14 +18,11 @@ const storeCloseController = {
   //페이지 목록 get
   list: async function (req) {
     const options = req.body;
-    console.log('options1', options);
 
     const allMall = options.allMall
-    console.log('options2', allMall);
 
     const cols = allMall == 'true' || allMall == true  ? null : {st_table:options.table}
 
-    console.log('options3',options, cols);
     if (options?.search) {
       const colnameSql = await sqlHelper.colnames(VIEW_TABLE.CLOSE);
       const [colnames] = await db.execute(colnameSql);
@@ -38,11 +35,8 @@ const storeCloseController = {
       idx = searchCols.indexOf('st_title'); searchCols.splice(idx,1);
       idx = searchCols.indexOf('cl_id'); searchCols.splice(idx,1);
       idx = searchCols.indexOf('cl_day'); searchCols.splice(idx,1);
-      console.log('searchCols',searchCols)
       const { query, values } = await sqlHelper.selectLimit(VIEW_TABLE.CLOSE,options,cols,null,searchCols);
-      console.log('query, values',query, values)
       const [rows] = await db.execute(query, values);
-      console.log('rows',rows)
       const cnt = await sqlHelper.selectSimpleCount(VIEW_TABLE.CLOSE, options,cols, searchCols)
       const [[{ rowsCount }]] = await db.execute(cnt.query,cnt.values);
       const data = {rowsCount,rows};
@@ -58,7 +52,6 @@ const storeCloseController = {
       const [rows] = await db.execute(query,values);
       const cnt = await sqlHelper.selectSimpleCount(VIEW_TABLE.CLOSE, null, cols)
       const [[{ rowsCount }]] = await db.execute(cnt.query,cnt.values);
-      console.log('rowsCount',rowsCount);
       const data = {rowsCount,rows};
         return {
           status: STATUS.S200.result, //status
@@ -111,9 +104,7 @@ const storeCloseController = {
       cl_update_at: at, //시간새로
     };
     const { query, values } = await sqlHelper.insert(TABLE.STORE_CLOSE,payload);
-    console.log('query,value',query,values)
     const [insertDone] = await db.execute(query, values);
-    console.log('insertDone',insertDone)
     if(insertDone.affectedRows==1){
       payload.cl_id=insertDone.insertId;
       delete payload.cl_ip;
@@ -135,12 +126,10 @@ const storeCloseController = {
       mb_id: req.user[0].mb_id,
       cl_update_at: at, //시간새로
     };
-    console.log('payload>>>>>',payload);
     const { query, values } = await sqlHelper.edit(TABLE.STORE_CLOSE,payload,{cl_id});
     const [editDone] = await db.execute(query, values);
     if(editDone.affectedRows==1){
       payload.index = index;
-      console.log('payload>>>>>',editDone);
 
       return payload;
     }else{
