@@ -121,20 +121,9 @@ router.put("/:bo_table/:wr_id/:wr_grp/del", async (req, res) => {
   const modifyMsg = await isModify(bo_table, member, data, checkToken, token);
   if (modifyMsg) {return res.json({ err: modifyMsg });}
   const result = await modelCall(boardController.del, bo_table,wr_id,wr_grp,member,ip);
+  console.log('result',result);
   res.json(result);
 });
-
-
-// //전체목록수
-// router.get("/:bo_table/listCount", async (req, res) => {
-//   const result = await modelCall(boardController.listCount, req, res);
-//   res.json(result);
-// });
-// //특정조건 전체목록수
-// router.get("/:bo_table/:wr_id/listByWhereCount", async (req, res) => {
-//   const result = await modelCall(boardController.listByWhereCount, req, res);
-//   res.json(result);
-// });
 
 //게시물 목록을 가져옴*
 router.get("/:bo_table/list", async (req, res) => {
@@ -270,22 +259,12 @@ router.delete("/:bo_table/:wr_id/commentDel", async (req,res)=>{
   const result = await modelCall(boardController.commentDel, bo_table,wr_id,member);
   res.json(result)
 })
-// //댓글리스트갯수 가져오기
-// router.post("/:bo_table/commentListCount", async (req,res)=>{
-//   const result = await modelCall(boardController.commentListCount, req, res);
-//   res.json(result)
-// })
+//댓글리스트갯수 가져오기
+router.post("/:bo_table/commentListCount", async (req,res)=>{
+  const result = await modelCall(boardController.commentListCount, req, res);
+  res.json(result)
+})
 
-// //대댓글수정
-// router.put("/:bo_table/:wr_id/replyEdit", async (req,res)=>{
-//   const result = await modelCall(boardController.replyEdit, req, res);
-//   res.json(result)
-// })
-// //대댓글삭제
-// router.put("/:bo_table/:wr_id/replyDel", async (req,res)=>{
-//   const result = await modelCall(boardController.replyDel, req, res);
-//   res.json(result)
-// })
 //파일다운로드*
 router.get("/:bo_table/:filename/download", async (req,res)=>{
   const { bo_table, filename } = req.params;
@@ -294,8 +273,9 @@ router.get("/:bo_table/:filename/download", async (req,res)=>{
   if (!grant) {
     return res.status(403).end("No file download permission");
   }
-  const { src } = req.query;
-  const srcFile = `${UPLOAD_PATH}/${bo_table}/${src}`;
+  // const { src } = req.query;
+  const srcFile = `${UPLOAD_PATH}/${bo_table}/${filename}`;
+  console.log();
   if (!fs.existsSync(srcFile)) {
     return res.status(404).end("file not found");
   }

@@ -400,38 +400,8 @@ const boardController = {
     }
     return delCnt;
   },
-  //전체목록수
-  listCount: async function (req) {
-    const { table } = req.params;
-    const config = await boardController.getConfig(table); //설정정보가져오기
 
-    if (isEmpty(config)) {
-      throw new Error("사용중지된 게시판입니다");
-    }
-    const cols = {
-      wr_use: 1,
-    };
 
-    const { query, values } = await sqlHelper.selectSimpleCount(`${TABLE.WRITE}${table}`,cols);
-    const [[ {rowsCount} ]] = await db.execute(query, values);
-
-    return rowsCount;
-  },
-  //특정조건 전체목록수
-  listByWhereCount: async function (req) {
-    const { table, id } = req.params;
-    const config = await boardController.getConfig(table); //설정정보가져오기
-    if (isEmpty(config)) {
-      throw new Error("사용중지된 게시판입니다");
-    }
-    const { query, values } = await sqlHelper.selectSimpleCount(
-      `${TABLE.WRITE}${table}`,
-      null,
-      { wr_name: id }
-    );
-    const [[{ rowsCount }]] = await db.execute(query, values);
-    return rowsCount;
-  },
   //페이지 목록*
   list: async function (config, bo_table, options, member,host) {
 
@@ -835,37 +805,6 @@ const boardController = {
       }
     }
     return delCnt
-  },
-
-  //대댓글수정
-  replyEdit: async function (req) {
-    const cols = { ...req.body };
-    const { query, values } = await sqlHelper.selectLimit(
-      `${TABLE.WRITE}${table}`,
-      cols
-    );
-    const [rows] = await db.execute(query, values);
-    return rows;
-  },
-  //대댓글삭제
-  replyDel: async function (req) {
-    const cols = { ...req.body };
-    const { query, values } = await sqlHelper.selectLimit(
-      `${TABLE.WRITE}${table}`,
-      cols
-    );
-    const [rows] = await db.execute(query, values);
-    return rows;
-  },
-  //파일다운로드
-  download: async function (req) {
-    const cols = { ...req.body };
-    const { query, values } = await sqlHelper.selectLimit(
-      `${TABLE.WRITE}${table}`,
-      cols
-    );
-    const [rows] = await db.execute(query, values);
-    return rows;
   },
 };
 module.exports = boardController;
