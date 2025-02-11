@@ -10,8 +10,6 @@ require("./plugins/pm2Bus");
   // app init
   const app = express();
   // const port = process.env.VUE_APP_SERVER_PORT || 3000;
-  // const port = require("./config")[process.env.NODE_ENV].PORT || 3000;
-  console.log('process.env.NODE_ENV',process.env);
   const port = require("./config")[process.env.NODE_ENV].PORT || 3000;
   const webServer = http.createServer(app);
 
@@ -19,84 +17,84 @@ require("./plugins/pm2Bus");
   const logger = require("./plugins/logger");
   global.$logger = logger;
 
-  // const ex = require("./plugins/ex");
-  // const query = ex.symbol();
-  // // $logger.info(query);
+  const ex = require("./plugins/ex");
+  const query = ex.symbol();
+  // $logger.info(query);
 
-  // //socket
-  // global.$IO = require("./plugins/socket")(webServer);
+  //socket
+  global.$IO = require("./plugins/socket")(webServer);
 
-  // //설정정보 로드
-  // const configController = require("./api/controller/configController");
-  // //config load
-  // await configController.load();
+  //설정정보 로드
+  const configController = require("./api/controller/configController");
+  //config load
+  await configController.load();
 
-  // //cors
-  // const cors = require("cors");
-  // const corsOptions = {
-  //   origin: ["http://localhost:4080", "http://localhost:4466"],
-  //   credentials: true,
-  // };
-  // app.use(cors(corsOptions));
+  //cors
+  const cors = require("cors");
+  const corsOptions = {
+    origin: ["http://localhost:4080", "http://localhost:4466"],
+    credentials: true,
+  };
+  app.use(cors(corsOptions));
 
-  // //body parser
-  // app.use(express.json());
-  // app.use(express.urlencoded({ extended: true }));
+  //body parser
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
 
-  // //cookie parser
-  // const cookieParser = require("cookie-parser");
-  // app.use(cookieParser());
+  //cookie parser
+  const cookieParser = require("cookie-parser");
+  app.use(cookieParser());
 
-  // //session
-  // const session = require("express-session");
-  // app.use(
-  //   session({
-  //     secret: "genie-session-sercret",
-  //     resave: true,
-  //     saveUninitialized: false,
-  //   })
-  // );
+  //session
+  const session = require("express-session");
+  app.use(
+    session({
+      secret: "genie-session-sercret",
+      resave: true,
+      saveUninitialized: false,
+    })
+  );
 
-  // //memory process
-  // let isDisableKeepAlive = false;
-  // app.use((req, res, next) => {
-  //   if (isDisableKeepAlive) {
-  //     $logger.info(`keep alive ${isDisableKeepAlive}`);
-  //     res.set("Connection", "close");
-  //   }
-  //   next();
-  // });
+  //memory process
+  let isDisableKeepAlive = false;
+  app.use((req, res, next) => {
+    if (isDisableKeepAlive) {
+      $logger.info(`keep alive ${isDisableKeepAlive}`);
+      res.set("Connection", "close");
+    }
+    next();
+  });
 
-  // //passport
-  // const passport = require("./plugins/passport");
-  // passport(app);
+  //passport
+  const passport = require("./plugins/passport");
+  passport(app);
 
-  // // global settings
-  // global.UPLOAD_PATH = path.join("upload/");
-  // fs.mkdirSync(UPLOAD_PATH, { recursive: true }); // 하위까지 모두만듦
+  // global settings
+  global.UPLOAD_PATH = path.join("upload/");
+  fs.mkdirSync(UPLOAD_PATH, { recursive: true }); // 하위까지 모두만듦
 
-  // //thumbnail
-  // const thumbnail = require("./plugins/thumbnail");
-  // app.use("/upload/:_path", thumbnail(path.join(__dirname, "./upload")));
+  //thumbnail
+  const thumbnail = require("./plugins/thumbnail");
+  app.use("/upload/:_path", thumbnail(path.join(__dirname, "./upload")));
 
-  // //autoRoute
-  // const autoRoute = require("./autoRoute");
-  // autoRoute("/api", app);
+  //autoRoute
+  const autoRoute = require("./autoRoute");
+  autoRoute("/api", app);
 
-  // //app error
-  // app.use("/api/*", (req, res) => {
-  //   res.json({ err: "요청하신 API가 없습니다" });
-  // });
+  //app error
+  app.use("/api/*", (req, res) => {
+    res.json({ err: "요청하신 API가 없습니다" });
+  });
 
-  // //heap 메모리 overflow처리
-  // const memSize = Object.entries(process.memoryUsage())[0][1];
-  // $logger.info(`${(memSize / 1024 / 1024).toFixed(4)}MB, 힙메모리 사이즈`);
+  //heap 메모리 overflow처리
+  const memSize = Object.entries(process.memoryUsage())[0][1];
+  $logger.info(`${(memSize / 1024 / 1024).toFixed(4)}MB, 힙메모리 사이즈`);
 
-  // if (process.platform == "linux") {
-  //   if (memSize > 150000000) {
-  //     process.emit("SIGINT");
-  //   }
-  // }
+  if (process.platform == "linux") {
+    if (memSize > 150000000) {
+      process.emit("SIGINT");
+    }
+  }
 
   //port listen
   webServer.listen(port, () => {
@@ -104,12 +102,12 @@ require("./plugins/pm2Bus");
     $logger.info(`http://localhost:${port}`);
   });
 
-  // //isDisableKeepAlive true일때 프로세스 죽임
-  // process.on("SIGINT", function () {
-  //   isDisableKeepAlive = true;
-  //   webServer.close(function () {
-  //     $logger.info(`Server Close`);
-  //     process.exit(0);
-  //   });
-  // });
+  //isDisableKeepAlive true일때 프로세스 죽임
+  process.on("SIGINT", function () {
+    isDisableKeepAlive = true;
+    webServer.close(function () {
+      $logger.info(`Server Close`);
+      process.exit(0);
+    });
+  });
 })();
