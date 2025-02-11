@@ -9,6 +9,14 @@ module.exports = {
     wait_ready : true,
     listen_timeout : 50000,
     kill_timeout: 50000,
+    env: {
+      NODE_ENV: 'development',  // 개발 환경에서 사용할 NODE_ENV
+      PORT: 4000
+    },
+    env_production: {
+      NODE_ENV: 'production',  // 프로덕션 환경에서 사용할 NODE_ENV
+      PORT: 8900
+    }
   }],
 
   // deploy : {
