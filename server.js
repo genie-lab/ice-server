@@ -11,7 +11,7 @@ require("./plugins/pm2Bus");
   const app = express();
   // const port = process.env.VUE_APP_SERVER_PORT || 3000;
   // const port = require("./config")[process.env.NODE_ENV].PORT || 3000;
-  console.log('process.env.NODE_ENV',process.env.NODE_ENV);
+  console.log('process.env.NODE_ENV',process.env);
   const port = require("./config")[process.env.NODE_ENV].PORT || 3000;
   const webServer = http.createServer(app);
 
