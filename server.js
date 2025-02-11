@@ -12,6 +12,7 @@ require("./plugins/pm2Bus");
   // const port = process.env.VUE_APP_SERVER_PORT || 3000;
   // const port = require("./config")[process.env.NODE_ENV].PORT || 3000;
   const port = require("./config")[process.env.NODE_ENV].PORT || 3000;
+  console.log('port',port);
   const webServer = http.createServer(app);
 
   //logger
@@ -56,15 +57,15 @@ require("./plugins/pm2Bus");
   //   })
   // );
 
-  //memory process
-  let isDisableKeepAlive = false;
-  app.use((req, res, next) => {
-    if (isDisableKeepAlive) {
-      $logger.info(`keep alive ${isDisableKeepAlive}`);
-      res.set("Connection", "close");
-    }
-    next();
-  });
+  // //memory process
+  // let isDisableKeepAlive = false;
+  // app.use((req, res, next) => {
+  //   if (isDisableKeepAlive) {
+  //     $logger.info(`keep alive ${isDisableKeepAlive}`);
+  //     res.set("Connection", "close");
+  //   }
+  //   next();
+  // });
 
   // //passport
   // const passport = require("./plugins/passport");
@@ -87,15 +88,15 @@ require("./plugins/pm2Bus");
   //   res.json({ err: "요청하신 API가 없습니다" });
   // });
 
-  //heap 메모리 overflow처리
-  const memSize = Object.entries(process.memoryUsage())[0][1];
-  $logger.info(`${(memSize / 1024 / 1024).toFixed(4)}MB, 힙메모리 사이즈`);
+  // //heap 메모리 overflow처리
+  // const memSize = Object.entries(process.memoryUsage())[0][1];
+  // $logger.info(`${(memSize / 1024 / 1024).toFixed(4)}MB, 힙메모리 사이즈`);
 
-  if (process.platform == "linux") {
-    if (memSize > 150000000) {
-      process.emit("SIGINT");
-    }
-  }
+  // if (process.platform == "linux") {
+  //   if (memSize > 150000000) {
+  //     process.emit("SIGINT");
+  //   }
+  // }
 
   //port listen
   webServer.listen(port, () => {
@@ -103,12 +104,12 @@ require("./plugins/pm2Bus");
     $logger.info(`http://localhost:${port}`);
   });
 
-  //isDisableKeepAlive true일때 프로세스 죽임
-  process.on("SIGINT", function () {
-    isDisableKeepAlive = true;
-    webServer.close(function () {
-      $logger.info(`Server Close`);
-      process.exit(0);
-    });
-  });
+  // //isDisableKeepAlive true일때 프로세스 죽임
+  // process.on("SIGINT", function () {
+  //   isDisableKeepAlive = true;
+  //   webServer.close(function () {
+  //     $logger.info(`Server Close`);
+  //     process.exit(0);
+  //   });
+  // });
 })();
