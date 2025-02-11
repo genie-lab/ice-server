@@ -26,7 +26,17 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-    - run: npm i
-    - run: npm ci
-    - run: npm run build --if-present
+        host: ${{ secrets.REMOTE_IP }}
+        username: ${{ secrets.REMOTE_SSH_ID }}
+        password: ${{ secrets.REMOTE_PW }}
+        port: ${{ secrets.REMOTE_SSH_PORT }}
+        #passphrase : ${{ secrets.REMOTE_SSH_KEY }} 
+        script: |
+          cd /home/ubuntu/lion-vue
+          sudo git pull
+          sudo yarn
+          pm2 reload all
+    #- run: npm i
+    #- run: npm ci
+    #- run: npm run build --if-present
     #- run: npm test
