@@ -1,7 +1,7 @@
 module.exports = {
   apps : [{
     name:'ice-server',
-    script: 'server.js',
+    script: 'cross-env NODE_ENV=production nodemon server.js',
     instances: 2, // 실행할 프로세스의 인스턴스 수
     // autorestart: true, // 애플리케이션의 자동 재시작 여부
     // watch: true, // 파일 변경 감지 및 재시작 여부
