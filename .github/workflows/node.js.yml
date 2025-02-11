@@ -32,7 +32,7 @@ jobs:
         port: ${{ secrets.REMOTE_SSH_PORT }}
         #passphrase : ${{ secrets.REMOTE_SSH_KEY }} 
         script: |
-          cd /home/ubuntu/lion-vue
+          cd /home/ubuntu/ice-server
           sudo git pull
           sudo yarn
           pm2 reload all
