@@ -45,15 +45,30 @@ require("./plugins/pm2Bus");
   const cookieParser = require("cookie-parser");
   app.use(cookieParser());
 
-  //session
+  //session update leak log
   const session = require("express-session");
+  const redis = require("redis");
+  const RedisStore = require("connect-redis").default;
+  const redisClient = redis.createClient({
+      url: "redis://localhost:6379",
+  });
+
+  redisClient.connect().catch(console.error);
+
+  const redisStore = new RedisStore({
+    client: redisClient,
+    prefix: "prefix:",
+  });
+
   app.use(
     session({
-      secret: "genie-session-sercret",
-      resave: true,
+      store: redisStore,
+      resave: false,
       saveUninitialized: false,
+      secret: "genie-session-sercret",
     })
-  );
+  )
+
 
   //memory process
   let isDisableKeepAlive = false;
