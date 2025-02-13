@@ -47,18 +47,18 @@ require("./plugins/pm2Bus");
 
   //session
   const session = require("express-session");
-  const redis = require("redis");
-  const RedisStore = require("connect-redis").default;
-  const redisClient = redis.createClient({
-      url: "redis://localhost:6379",
-  });
+  // const redis = require("redis");
+  // const RedisStore = require("connect-redis").default;
+  // const redisClient = redis.createClient({
+  //     url: "redis://localhost:6379",
+  // });
 
-  redisClient.connect().catch(console.error);
+  // redisClient.connect().catch(console.error);
 
-  const redisStore = new RedisStore({
-    client: redisClient,
-    prefix: "prefix:",
-  });
+  // const redisStore = new RedisStore({
+  //   client: redisClient,
+  //   prefix: "prefix:",
+  // });
 
   // app.use(
   //   session({
@@ -69,34 +69,34 @@ require("./plugins/pm2Bus");
   //   })
   // )
 
-  // app.use(
-  //   session({
-  //     secret: "genie-session-sercret",
-  //     resave: true,
-  //     saveUninitialized: false,
-  //   })
-  // );
+  app.use(
+    session({
+      secret: "genie-session-sercret",
+      resave: true,
+      saveUninitialized: false,
+    })
+  );
 
   //-momery unleaked---------
-app.set('trust proxy', 1);
+// app.set('trust proxy', 1);
 
-app.use(session({
-cookie:{
-    secure: true,
-    maxAge:60000
-       },
-store: redisStore,
-secret: 'genie-session-sercret',
-saveUninitialized: true,
-resave: false
-}));
+// app.use(session({
+// cookie:{
+//     secure: true,
+//     maxAge:60000
+//        },
+// store: redisStore,
+// secret: 'genie-session-sercret',
+// saveUninitialized: true,
+// resave: false
+// }));
 
-app.use(function(req,res,next){
-if(!req.session){
-    return next(new Error('Oh no')) //handle error
-}
-next() //otherwise continue
-});
+// app.use(function(req,res,next){
+// if(!req.session){
+//     return next(new Error('Oh no')) //handle error
+// }
+// next() //otherwise continue
+// });
 
   //memory process
   let isDisableKeepAlive = false;
