@@ -45,7 +45,7 @@ require("./plugins/pm2Bus");
   const cookieParser = require("cookie-parser");
   app.use(cookieParser());
 
-  //session update leak log
+  //session
   const session = require("express-session");
   const redis = require("redis");
   const RedisStore = require("connect-redis").default;
@@ -60,15 +60,43 @@ require("./plugins/pm2Bus");
     prefix: "prefix:",
   });
 
-  app.use(
-    session({
-      store: redisStore,
-      resave: false,
-      saveUninitialized: false,
-      secret: "genie-session-sercret",
-    })
-  )
+  // app.use(
+  //   session({
+  //     store: redisStore,
+  //     resave: false,
+  //     saveUninitialized: false,
+  //     secret: "genie-session-sercret",
+  //   })
+  // )
 
+  // app.use(
+  //   session({
+  //     secret: "genie-session-sercret",
+  //     resave: true,
+  //     saveUninitialized: false,
+  //   })
+  // );
+
+  //-momery unleaked---------
+app.set('trust proxy', 1);
+
+app.use(session({
+cookie:{
+    secure: true,
+    maxAge:60000
+       },
+store: redisStore,
+secret: 'genie-session-sercret',
+saveUninitialized: true,
+resave: false
+}));
+
+app.use(function(req,res,next){
+if(!req.session){
+    return next(new Error('Oh no')) //handle error
+}
+next() //otherwise continue
+});
 
   //memory process
   let isDisableKeepAlive = false;
