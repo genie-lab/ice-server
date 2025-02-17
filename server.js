@@ -60,23 +60,6 @@ require("./plugins/pm2Bus");
     prefix: "prefix:",
   });
 
-  // app.use(
-  //   session({
-  //     store: redisStore,
-  //     resave: false,
-  //     saveUninitialized: false,
-  //     secret: "genie-session-sercret",
-  //   })
-  // )
-
-  // app.use(
-  //   session({
-  //     secret: "genie-session-sercret",
-  //     resave: true,
-  //     saveUninitialized: false,
-  //   })
-  // );
-
   //-momery unleaked---------
 app.set('trust proxy', 1);
 
