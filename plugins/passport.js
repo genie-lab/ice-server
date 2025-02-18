@@ -15,7 +15,6 @@ const {
   NAVER_CLIENT_SECRET,
 } = $config.server;
 
-console.log('config>>>>>',$config)
 
 // 로그인 정책
 function loginRules(member) {

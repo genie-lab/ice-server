@@ -1,26 +1,16 @@
 module.exports = {
-  apps : [{
-    name:'ice-server',
-    script: 'server.js',
-    env: {
-      NODE_ENV: 'development',  // 개발 환경 설정
-    },
-    env_production: {
-      NODE_ENV: 'production',  // 프로덕션 환경 설정
-    },
-    instances: 1, // 실행할 프로세스의 인스턴스 수
-  }],
-
-  // deploy : {
-  //   production : {
-  //     user : 'SSH_USERNAME',
-  //     host : 'SSH_HOSTMACHINE',
-  //     ref  : 'origin/master',
-  //     repo : 'GIT_REPOSITORY',
-  //     path : 'DESTINATION_PATH',
-  //     'pre-deploy-local': '',
-  //     'post-deploy' : 'npm install && pm2 reload ecosystem.config.js --env production',
-  //     'pre-setup': ''
-  //   }
-  // }
+  apps : [
+    {
+      name: 'ice-server',               // SSR 앱의 이름
+      script: 'server.js',  // 빌드 후 생성된 SSR 앱 파일 경로
+      instances: 2,                  // 인스턴스 수 (클러스터 모드에서 2개 인스턴스)
+      exec_mode: 'cluster',          // 클러스터 모드로 실행
+      autorestart: true,             // 앱이 종료되면 자동 재시작
+      watch: false,                  // 파일 변경을 감지하고 자동으로 재시작 여부
+      max_memory_restart: '1G',      // 앱의 메모리 사용량이 1GB를 초과하면 재시작
+      env: {
+        NODE_ENV: 'production',     // 환경 변수 설정
+      }
+    }
+  ],
 };

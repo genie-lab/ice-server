@@ -1,0 +1,65 @@
+name: Quasar Build and Deploy via SSH
+
+on:
+  push:
+    branches:
+      - main  # main 브랜치에 푸시될 때 실행
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.5.3  # SSH 키를 로드하여 연결 설정
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Install sshpass
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass  # sshpass 설치
+
+      - name: Deploy to server via SSH
+        run: |
+          sshpass -p "${{ secrets.REMOTE_PW }}" ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_SSH_ID }}@${{ secrets.REMOTE_IP }} << 'EOF'
+            # 시스템 환경 업데이트
+            sudo apt-get clean
+            sudo apt-get update -o Debug::Acquire::http=true
+            sudo apt-get install -y curl  # curl 설치 (node 설치를 위해)
+
+            # 최신 Node.js 설치
+            curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+            sudo apt-get install -y nodejs  # Node.js 최신 버전 설치
+
+            # npm, quasar, pm2 설치
+            sudo npm install -g npm  # npm 최신 버전 설치
+            sudo npm install -g pm2  # PM2 전역 설치
+
+            # 설치된 버전 확인
+            node -v
+            npm -v
+            pm2 -v
+
+            # 프로젝트 디렉토리로 이동
+            cd /home/ubuntu/ice-server  # 프로젝트 경로로 이동
+
+            # 최신 코드 가져오기
+            git reset --hard # 로컬 변경 사항을 버리고, 원격 저장소의 최신 상태로 강제로 덮어씁니다
+            git pull origin main  # 최신 코드 가져오기
+
+            # 의존성 설치
+            npm install  # 의존성 설치
+
+            # pm2 프로세스 확인 및 start/reload 처리
+            if pm2 describe ice-server > /dev/null 2>&1; then
+              echo "ice-server exists, reloading..."
+              pm2 reload ice-server
+            else
+              echo "ice-server does not exist, starting..."
+              pm2 start ecosystem.config.cjs --env production
+            fi
+          EOF

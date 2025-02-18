@@ -1,7 +1,7 @@
 const production = {
   PORT: 8900,
   DB: {
-    host: "localhost",
+    host: "158.247.202.209",
     port: "4041",
     user: "ice",
     database: "ice",
