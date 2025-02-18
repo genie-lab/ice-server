@@ -32,11 +32,13 @@ require("./plugins/pm2Bus");
   //cors
   const cors = require("cors");
   const corsOptions = {
-    origin: ["https://orangewebapp.net", "http://localhost:4466"],
-    credentials: true,
-    
+    credentials: true,    
   };
   app.use(cors(corsOptions));
+  app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "https://orangewebapp.net");  // 특정 도메인만 허용
+    next();
+  });
 
   //body parser
   app.use(express.json());
