@@ -32,7 +32,7 @@ require("./plugins/pm2Bus");
   //cors
   const cors = require("cors");
   const corsOptions = {
-    origin: ["http://localhost:4080", "http://localhost:4466"],
+    origin: ["http://localhost:5436", "https://orangewebapp.net","https://www.orangewebapp.net", "http://localhost:4466"],
     credentials: true,
   };
   app.use(cors(corsOptions));
