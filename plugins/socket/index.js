@@ -1,4 +1,5 @@
 const { Server } = require("socket.io");
+const redis = require("redis");
 const redisAdapter = require("socket.io-redis");
 const { instrument } = require("@socket.io/admin-ui");
 const crypto = require("crypto");
@@ -12,29 +13,42 @@ const config = process.env.NODE_ENV =='development' ? Config.development : Confi
 
 const server = function (webServer) {
   const io = new Server(webServer, {
-    cors: { origin: ["https://admin.socket.io", "*"] },
+    cors: { origin: ["https://admin.socket.io", "https://orangewebapp.net"] },
     credentials: true,
   });
 
   //redis
   //https://ittrue.tistory.com/318
   //c:/program files/Redis/redis-cli.exe 실행 후 ping
-  const redisClient = redisAdapter({
-    host: config.REDIS.host,
-    port: config.REDIS.port,
-  });
-  io.adapter(redisClient);
+  // const redisClient = redisAdapter({
+  //   host: config.REDIS.host,
+  //   port: config.REDIS.port,
+  // });
+  // io.adapter(redisClient);
+  const pubClient = redis.createClient({ host: config.REDIS.host, port: config.REDIS.port });
+  const subClient = pubClient.duplicate();
 
-  //https://admin.socket.io/
+  io.adapter(redisAdapter(pubClient, subClient));
+
+  //https://admin.socket.io/admin
   //https://bcrypt-generator.com
+  const bcrypt = require("bcrypt");
+  // console.log(bcrypt.hashSync("genie-lab", 12));
+  const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
+  const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH;
+
+  // console.log("🔹 ADMIN_USERNAME:", process.env.ADMIN_USERNAME);
+  // console.log("🔹 ADMIN_PASSWORD_HASH:", process.env.ADMIN_PASSWORD_HASH);
   instrument(io, {
-    namespaceName: "./admin",
+    namespaceName: "/admin", // 확실히 "/admin"으로 설정
     auth: {
       type: "basic",
-      username: "genielab",
-      password: "$2a$12$34KU8cLQYcDXKFa2sA1qCOzagz/K848q6J2uW2GtE0qpCkaLMzKxS",
+      username: ADMIN_USERNAME,
+      password: ADMIN_PASSWORD_HASH
     },
   });
+
+
 
   io.use((socket, next) => {
     const sessionID = socket.handshake.auth.sessionID;
@@ -71,7 +85,10 @@ const server = function (webServer) {
       userID: socket.userID,
     });
 
-    socket.on("disconnection", () => {});
+    socket.on("disconnect", () => {
+      console.log(`User ${socket.userID} disconnected`);
+    });
+    
     if (process.env.NODE_ENV == "development") {
       socket.onAny((event, ...args) => {
         console.log(`socket`, event, ...args);

@@ -21,6 +21,10 @@ require("./plugins/pm2Bus");
   const query = ex.symbol();
   // $logger.info(query);
 
+
+  const bcrypt = require("bcrypt");
+  console.log(bcrypt.hashSync("genie-lab", 12));
+
   //socket
   global.$IO = require("./plugins/socket")(webServer);
 
