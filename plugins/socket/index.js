@@ -13,7 +13,7 @@ const config = process.env.NODE_ENV =='development' ? Config.development : Confi
 
 const server = function (webServer) {
   const io = new Server(webServer, {
-    cors: { origin: ["https://admin.socket.io", "https://orangewebapp.net"] },
+    cors: { origin: ["https://admin.socket.io", "*"] },
     credentials: true,
   });
 
