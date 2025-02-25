@@ -9,7 +9,7 @@ const STATUS = require("../util/STATUS");
 const uplpad = require("../util/uploadMulter");
 
 //새로고침 멤버유지
-router.post("/aliveCheck", async (req, res) => {
+router.get("/aliveCheck", async (req, res) => {
   if (req?.user) {
     const [result] = req.user;
     delete result.mb_password;
@@ -87,7 +87,7 @@ router.get("/logout", async (req, res) => {
   if (req.cookies["token"] !== undefined) {
     res.clearCookie("token");
   }
-  res.redirect("/");
+  res.redirect("/api/member/aliveCheck");
 });
 //탈퇴
 router.post("/leave", async (req, res) => {
