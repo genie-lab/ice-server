@@ -219,7 +219,7 @@ const memberController = {
       );
       await db.execute(query, values);
     }
-    return { editDone, url: payload.mb_photo };
+    return { editDone, payload, url: payload.mb_photo };
   },
   //삭제
   del: async (req) => {
