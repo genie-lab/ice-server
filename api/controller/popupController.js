@@ -212,11 +212,20 @@ const popupController = {
   //회원목록
   list: async (req) => {
     const options = req.query;
+    for(opt in options){
+      switch (true) {
+        case !isNaN(options[opt]): //string
+          options[opt] = Number(options[opt])
+        default:
+          options[opt];
+      }
+    }
+
     if (options?.search) {
       const colnameSql = await sqlHelper.colnames(TABLE.POPUP);
       const [colnames] = await db.execute(colnameSql);
       const searchCols = colnames.map((c) => {return c.COLUMN_NAME;});
-      const countQuery = await sqlHelper.selectSimpleCount(TABLE.POPUP,options,searchCols);
+      const countQuery = await sqlHelper.selectSimpleCount(TABLE.POPUP,options,null,searchCols);
       const [[{ rowsCount }]] = await db.execute(countQuery.query,countQuery.values);
 
       const { query } = await sqlHelper.selectLimit(TABLE.POPUP,options,null,null,searchCols);
