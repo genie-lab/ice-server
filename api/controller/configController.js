@@ -65,7 +65,8 @@ const configController = {
       const data = { err: "최고관리자만 서버를 재시작 할 수 있습니다" };
       return resData(STATUS.E200.result, STATUS.E200.resultDesc,moment().format("YYYY-MM-DD HH:mm:ss"),data);
     }
-    const result = process.send({type: "config:restart",data: "restart",});
+    const result = process.send({type: "config:restart",data: "restart"});
+    // console.log('restart result',result);
     return result;
   },
   //키,값 중복검사

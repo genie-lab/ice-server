@@ -68,11 +68,14 @@ const memberController = {
       mb_update_at: at,
       mb_update_ip: ip,
     };
+
     //추가할때는 탈퇴지우기
     delete payload.mb_leave_at;
     delete payload.mb_login_at;
+
     //password 암호화하기
     payload.mb_password = jwt.generatePassword(payload.mb_password);
+
     //파일추가
     const file = req?.files[0];
     if (file) {
@@ -86,6 +89,10 @@ const memberController = {
     } else {
       payload.mb_photo = "https://picsum.photos/500/500";
     }
+
+
+    // console.log('payload',payload, payload);
+
     const { query, values } = await sqlHelper.insert(TABLE.MEMBER, payload);
     const [insertDone] = await db.execute(query, values);
 
@@ -108,7 +115,8 @@ const memberController = {
       );
       await db.execute(query, values);
     }
-    return { insertDone, url: payload.mb_photo };
+    delete payload.mb_password
+    return { insertDone, payload, url: payload.mb_photo };
   },
   //수정
   edit: async (req) => {
