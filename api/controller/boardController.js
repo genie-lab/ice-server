@@ -668,8 +668,10 @@ const boardController = {
     const table = `${TABLE.VIEW}${bo_table}`;
     const commSql = await sqlHelper.selectLimit(table,options,cols)
     const [rows]=await db.execute(commSql.query,commSql.values)
+
     const commCount= await sqlHelper.selectSimpleCount(table,null,cols)
     const [[{rowsCount}]] = await db.execute(commCount.query,commCount.values)
+
     const ids = []; //댓글 아이디모음
     const replys = [];
     for (const row of rows) {
@@ -680,6 +682,7 @@ const boardController = {
     //답글모아서 보내기
     for (const id of ids) {
       const {query,values} = await sqlHelper.selectLimit(table,{sortBy:['wr_grp','wr_order'], type:['desc','asc']},{wr_reply,wr_parent:id})
+
       const [rows]=await db.execute(query,values)
 
       if (rows?.length > 0) {
@@ -737,33 +740,35 @@ const boardController = {
 
   },
   //댓글수정*
-  commentEdit: async function (bo_table, data) {
+  commentEdit: async function (req, bo_table, {data}) {
+
     const table = `${TABLE.WRITE}${bo_table}`;
-    let { wr_id } = data;
-    delete data.wr_id;
-    delete data.wr_create_at;
-    delete data.wr_password;
+    const { wr_id } = data;
+    const payload = {
+      ...data,
+    }
+    delete payload?.wr_id;
+    delete payload?.commCnt;
+    delete payload?.show;
+    delete payload?.wr_create_at;
+    delete payload?.wr_password;
     /** VIEW 필드 삭제 */
-    delete data.good;
-    delete data.bad;
-    delete data.replys;
-    delete data.goodFlag;
+    delete payload?.good;
+    delete payload?.bad;
+    delete payload?.replys;
+    delete payload?.goodFlag;
 
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
     const ip = getIp(req);
 
-    data.wr_update_at = at
-    data.wr_ip=ip
+    payload.wr_update_at = at
+    payload.wr_ip=ip
 
-    const { query, values } = await sqlHelper.edit(
-      `${TABLE.WRITE}${table}`,
-      payload,
-      {wr_id}
-    );
+    const { query, values } = await sqlHelper.edit(table,payload,{wr_id});
     const [rows] = await db.execute(query, values);
     if (rows.affectedRows) {
       const data = await sqlHelper.selectLimit(table,null,{wr_id})
-      const [[item]] = await db.execute(data.query,data.values)
+      const [[item]] = await db.execute(data.query, data.values)
       return item;
     } else {
       const data = { err: "업데이트 실패" };

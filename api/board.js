@@ -242,7 +242,7 @@ router.put("/:bo_table/commentEdit", async (req,res)=>{
     result = { err: modifyMsg };
   } else {
     data.wr_ip = getIp(req);
-    result = await modelCall(boardController.commentEdit, bo_table, data);
+    result = await modelCall(boardController.commentEdit,req, bo_table, data);
   }
   res.json(result);
 })
