@@ -8,12 +8,16 @@ class InMemorySessionStore extends SessionStore {
   constructor() {
     super();
     this.sessions = new Map();
+    console.log('this.sessions',this.sessions);
   }
-  findSession(id) {
-    return this.session.get(id);
+  findSession(obj) {
+    console.log('sessionStore',obj.sessionID);
+    return this.sessions.get(obj.sessionID);
   }
   saveSession(id, session) {
-    this.sessions.set(id, session);
+    console.log('saveSession',id, session);
+
+    sessions.set(id, session);
   }
   findAllSessions() {
     return [...this.sessions.values()];
