@@ -50,34 +50,34 @@ const server = function (webServer) {
 
 
 
-  io.use((socket, next) => {
-    console.log('socket', socket, );
-    const sessionID = socket.handshake.auth.sessionID;
-    console.log('sessionID handshake', sessionID, );
-    if (sessionID) {
-      const session = sessionStore.findSession(sessionID);
-      if (session) {
-        socket.sessionID = sessionID;
-        socket.userId = session.userID;
-        socket.username = session.username;
-        return next();
-      }
-    }
+  // io.use((socket, next) => {
+  //   console.log('socket', socket, );
+  //   const sessionID = socket.handshake.auth.sessionID;
+  //   console.log('sessionID handshake', sessionID, );
+  //   if (sessionID) {
+  //     const session = sessionStore.findSession(sessionID);
+  //     if (session) {
+  //       socket.sessionID = sessionID;
+  //       socket.userId = session.userID;
+  //       socket.username = session.username;
+  //       return next();
+  //     }
+  //   }
 
-    console.log('socket.handshake',socket.handshake.auth);
-    const username = socket.handshake.auth.userName;
-    if (!username) {
-      // console.log("invalid username");
-      // return next(new Error("invalid username"));
-    }
+  //   console.log('socket.handshake',socket.handshake.auth);
+  //   const username = socket.handshake.auth.userName;
+  //   if (!username) {
+  //     // console.log("invalid username");
+  //     // return next(new Error("invalid username"));
+  //   }
 
-    //create new session
-    socket.sessionID = randomId();
-    socket.userID = randomId();
-    console.log('socket.userID','socket.sessionID ',socket.sessionID ,socket.userID);
-    socket.username = username;
-    next();
-  });
+  //   //create new session
+  //   socket.sessionID = randomId();
+  //   socket.userID = randomId();
+  //   console.log('socket.userID','socket.sessionID ',socket.sessionID ,socket.userID);
+  //   socket.username = username;
+  //   next();
+  // });
 
   io.on("connection", (socket) => {
     //handler 추가
