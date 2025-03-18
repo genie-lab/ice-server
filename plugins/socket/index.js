@@ -68,7 +68,7 @@ const server = function (webServer) {
     const username = socket.handshake.auth.userName;
     if (!username) {
       // console.log("invalid username");
-      return next(new Error("invalid username"));
+      // return next(new Error("invalid username"));
     }
 
     //create new session
