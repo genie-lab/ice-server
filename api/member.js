@@ -40,6 +40,7 @@ router.post("/duplCheck", async (req, res) => {
 });
 //login
 router.post("/loginLocal", async (req, res) => {
+  console.log('login local',req.body);
   // 인증
   passport.authenticate("local", function (err, member, info) {
     // passport 안 done(내용들 , , ); 인증결과 받음
