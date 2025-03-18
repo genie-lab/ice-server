@@ -14,17 +14,19 @@ const { VUE_APP_SERVER_PORT } = process.env;
 
 function clearMemberField(member) {
   delete member.mb_password;
-  member.mb_birth = moment(member.mb_birth).format("LT");
-  member.mb_create_at = moment(member.mb_create_at).format("LT");
-  member.mb_update_at = moment(member.mb_update_at).format("LT");
+  member.mb_birth = moment(member.mb_birth).format("YYYY-MM-DD HH:mm:ss")
+  member.mb_create_at = moment(member.mb_create_at).format("YYYY-MM-DD HH:mm:ss")
+  member.mb_update_at = moment(member.mb_update_at).format("YYYY-MM-DD HH:mm:ss")
   if (member.mb_login_at) {
-    member.mb_login_at = moment(member.mb_login_at).format("LT");
+    member.mb_login_at = moment(member.mb_login_at).format("YYYY-MM-DD HH:mm:ss")
   }
   if (member.mb_leave_at) {
-    member.mb_leave_at = moment(member.mb_leave_at).format("LT");
+    member.mb_leave_at = moment(member.mb_leave_at).format("YYYY-MM-DD HH:mm:ss")
   }
   if (member.mb_birth) {
-    member.mb_birth = moment(member.mb_birth).format("L");
+    member.mb_birth = moment(member.mb_birth).format("YYYY-MM-DD")
+            
+    
   }
   return member;
 }
