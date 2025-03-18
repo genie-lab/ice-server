@@ -80,6 +80,8 @@ const server = function (webServer) {
   // });
 
   io.on("connection", (socket) => {
+    console.log('why connection/?');
+
     //handler 추가
     configHandler(io, socket);
     roomHandler(io, socket);
@@ -89,9 +91,10 @@ const server = function (webServer) {
       userID: socket.userID,
     });
 
-    socket.on("disconnect", () => {
-      console.log(`User ${socket.userID} disconnected`);
-    });
+    // socket.on("disconnect", () => {
+    //   console.log('why disconnect/?');
+    //   console.log(`User ${socket.userID} disconnected`);
+    // });
     
     if (process.env.NODE_ENV == "development") {
       socket.onAny((event, ...args) => {
