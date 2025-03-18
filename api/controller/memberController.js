@@ -308,12 +308,15 @@ const memberController = {
   },
   //where절 목록
   memberByWhere: async (cols) => {
+    console.log('memberByWhere',cols);
     const { query, values } = await sqlHelper.selectLimit(
       TABLE.MEMBER,
       null,
       cols
     );
     const [rows] = await db.execute(query, values);
+    console.log('rows',rows);
+
     return rows;
   },
   //where절 목록
