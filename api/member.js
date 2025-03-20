@@ -52,6 +52,8 @@ router.post("/loginLocal", async (req, res) => {
       // 인증승인
       //passport 문법
       req.login(member, { session: false }, async (err) => {
+        console.log('member',member);
+
         // 싱글페이지라 session false처리 앞단에서 쿠키사용
         if (err) {
           console.log(err);
