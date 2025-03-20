@@ -60,12 +60,14 @@ router.post("/loginLocal", async (req, res) => {
         } else {
           //토큰 가져오기
           const token = jwt.getToken(member); //member.mb_id 가져옴
+          console.log('token : ', token);
 
           //로그인 업데이트 시간 업데이트
           try {
             const data = await memberController.loginMember(req); // 업데이트 이루어짐
             member.mb_login_at = data.mb_login_at;
             member.mb_login_ip = data.mb_login_ip;
+            console.log('data : ', data);
 
             // 쿠키생성 클라 넣어줌
             res.cookie("token", token, { httpOnly: true }); //클라에서 서버로 못옴
