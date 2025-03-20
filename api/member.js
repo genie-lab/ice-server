@@ -43,6 +43,7 @@ router.post("/loginLocal", async (req, res) => {
   console.log('login local',req.body);
   // 인증
   passport.authenticate("local", function (err, member, info) {
+    console.log('passport member',member, info, err);
     // passport 안 done(내용들 , , ); 인증결과 받음
     if (info) {
       // 에러
