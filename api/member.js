@@ -70,6 +70,7 @@ router.post("/loginLocal", async (req, res) => {
             res.cookie("token", token, { httpOnly: true }); //클라에서 서버로 못옴
             const result = { member, token };
             res.json(result);
+            console.log('>>>>>>>>>>>>>>>>>>>>> memeber : ', result);
           } catch (error) {
             res.json({ error });
           }
