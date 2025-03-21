@@ -50,55 +50,57 @@ const server = function (webServer) {
 
 
 
-  // io.use((socket, next) => {
-  //   console.log('socket', socket, );
-  //   const sessionID = socket.handshake.auth.sessionID;
-  //   console.log('sessionID handshake', sessionID, );
-  //   if (sessionID) {
-  //     const session = sessionStore.findSession(sessionID);
-  //     if (session) {
-  //       socket.sessionID = sessionID;
-  //       socket.userId = session.userID;
-  //       socket.username = session.username;
-  //       return next();
-  //     }
-  //   }
+      // 사용자 이름 확인 연결 허용 나중에 다시 사용할 수 있도록 객체 username의 속성으로 추가됩니다 .
+  io.use((socket, next) => {
+    //session id
 
-  //   console.log('socket.handshake',socket.handshake.auth);
-  //   const username = socket.handshake.auth.userName;
-  //   if (!username) {
-  //     // console.log("invalid username");
-  //     // return next(new Error("invalid username"));
-  //   }
+    const sessionID = socket.handshake.auth.sessionID;
+    // console.log("sessionID", sessionID);
+    if (sessionID) {
+      // find existing session
+      const session = sessionStore.findSession(sessionID);
+      if (session) {
+        socket.sessionID = sessionID;
+        socket.userID = session.userID;
+        socket.username = session.username;
+        return next();
+      }
+    }
 
-  //   //create new session
-  //   socket.sessionID = randomId();
-  //   socket.userID = randomId();
-  //   console.log('socket.userID','socket.sessionID ',socket.sessionID ,socket.userID);
-  //   socket.username = username;
-  //   next();
-  // });
+    const username = socket.handshake.auth.userName;
+    // console.log("username", username);
+    if (!username) {
+      return next(new Error("invalid username"));
+    }
+
+    // create new session
+    socket.sessionID = randomId();
+    socket.userID = randomId();
+    socket.username = username;
+    // console.log(socket.sessionID);
+    const session = socket.sessionID;
+    next();
+  });
 
   io.on("connection", (socket) => {
-    console.log('why connection/?');
-
-    //handler 추가
+    // handler 추가
     configHandler(io, socket);
-    roomHandler(io, socket);
-
+    boardHandler(io, socket);
+    // console.log("conected=>??", socket.id);
+    // console.log("conected=>socket.sessionID??", socket.sessionID);
     socket.emit("session", {
       sessionID: socket.sessionID,
       userID: socket.userID,
     });
 
-    // socket.on("disconnect", () => {
-    //   console.log('why disconnect/?');
-    //   console.log(`User ${socket.userID} disconnected`);
-    // });
-    
+    socket.on("disconnection", () => {
+      // console.log("disconnect === => ", socket.sessionID);
+      //socket연결 끊기
+    });
+
     if (process.env.NODE_ENV == "development") {
       socket.onAny((event, ...args) => {
-        console.log(`socket`, event, ...args);
+        console.log("socket", event, ...args);
       });
     }
   });
