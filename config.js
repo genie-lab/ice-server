@@ -1,14 +1,14 @@
 const production = {
   PORT: 8900,
   DB: {
-    host: "127.0.0.1",
+    host: "158.247.202.209",
     port: "4041",
     user: "ice",
     database: "ice",
     password: "ice",
   },
   REDIS: {
-    host: "127.0.0.1",
+    host: "158.247.202.209",
     port: 6379,
   },
   SECRET_KEY: "$2a$12$U3fh66EhjEts.vUTORXno.DKg1b30h8Z26fZll8lHUoEKIsqKYLdK", //genieisbeautiful
