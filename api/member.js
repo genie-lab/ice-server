@@ -72,7 +72,12 @@ router.post("/loginLocal", async (req, res) => {
             console.log('data : ', data);
 
             // 쿠키생성 클라 넣어줌
-            res.cookie("token", token, { httpOnly: true }); //클라에서 서버로 못옴
+            res.cookie("token", token, { 
+              httpOnly: true,   // JavaScript에서 쿠키 접근 불가능 (보안 강화)
+              secure: true,     // HTTPS에서만 전송됨 (배포 환경에서는 true로 설정)
+              sameSite: 'Lax',  // 크로스사이트 요청 문제 방지 (필요 시 'None' 사용)
+              maxAge: 7 * 24 * 60 * 60 * 1000  // 7일간 유지 (밀리초 단위)
+             }); //클라에서 서버로 못옴
             const result = { member, token };
             res.json(result);
             console.log('>>>>>>>>>>>>>>>>>>>>> memeber : ', result);
