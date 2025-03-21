@@ -26,6 +26,24 @@ jobs:
       - name: Deploy to server via SSH
         run: |
           sshpass -p "${{ secrets.REMOTE_PW }}" ssh -o StrictHostKeyChecking=no ${{ secrets.REMOTE_SSH_ID }}@${{ secrets.REMOTE_IP }} << 'EOF'
+            # 시스템 환경 업데이트
+            sudo apt-get clean
+            sudo apt-get update -o Debug::Acquire::http=true
+            sudo apt-get install -y curl  # curl 설치 (node 설치를 위해)
+
+            # 최신 Node.js 설치
+            curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+            sudo apt-get install -y nodejs  # Node.js 최신 버전 설치
+
+            # npm, quasar, pm2 설치
+            sudo npm install -g npm  # npm 최신 버전 설치
+            sudo npm install -g pm2  # PM2 전역 설치
+
+            # 설치된 버전 확인
+            node -v
+            npm -v
+            pm2 -v
+
             # 프로젝트 디렉토리로 이동
             cd /home/ubuntu/ice-server  # 프로젝트 경로로 이동
 
