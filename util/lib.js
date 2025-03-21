@@ -28,8 +28,8 @@ module.exports = {
     console.log('req.ip',req.ip);
     let result = '';
     switch (ip) {
-      case "::::ffff:127.0.0.1":
-         result = ip.replace("::::ffff:127.0.0.1", "127.0.0.1");
+      case "::ffff:127.0.0.1":
+         result = ip.replace("::ffff:127.0.0.1", "127.0.0.1");
          console.log('result>>ip',result);
          return result;
       case "::1":
