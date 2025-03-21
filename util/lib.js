@@ -25,6 +25,7 @@ module.exports = {
 
   getIp(req) {
     const ip = req.ip;
+    console.log('req.ip',req.ip);
     switch (ip) {
       case "::::ffff:127.0.0.1":
         return ip.replace("::::ffff:127.0.0.1", "127.0.0.1");
@@ -32,7 +33,7 @@ module.exports = {
         return ip.replace("::1", "127.0.0.1");
 
       case "::ffff:":
-        return ip.replace("::ffff:", "");
+        return ip.replace("::ffff:", "127.0.0.1");
 
       default:
         break;
