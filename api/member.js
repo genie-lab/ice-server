@@ -25,8 +25,9 @@ router.post("/aliveCheck", async (req, res) => {
       // sameSite: 'Lax',  // 크로스사이트 요청 문제 방지 (필요 시 'None' 사용)
       maxAge: 7 * 24 * 60 * 60 * 1000  // 7일간 유지 (밀리초 단위)
      }); //클라에서 서버로 못옴
-     console.log('>>>>>>>>>>>>>>>>>>>>> memeber : ', member, token);
-    const result = { member, token };
+     console.log('>>>>>>>>>>>>>>>>>>>>> memeber : ', data.member, data.token);
+     delete data.member.mb_password
+     const result = { member:data.member, token:data.token };
     res.json(result);
   }
     res.json("로그인 사용자 아님");
