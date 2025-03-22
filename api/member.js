@@ -27,6 +27,7 @@ router.post("/aliveCheck", async (req, res) => {
      }); //클라에서 서버로 못옴
      console.log('>>>>>>>>>>>>>>>>>>>>> memeber : ', data.member, data.token);
      delete data.member.mb_password
+     req.user = data.member
      const result = { member:data.member, token:data.token };
     res.json(result);
   }
