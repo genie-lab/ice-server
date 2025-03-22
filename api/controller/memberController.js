@@ -342,10 +342,11 @@ const memberController = {
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
     const ip = getIp(req);
     // 아이디 패스워드로 해당 레코드 찾아 로그인시간 업데이트
-    const { mb_id, mb_password, mb_email,token } = req.body;
+    const data = req.body;
+    // { mb_id, mb_password, mb_email,token }
     const password='';
-    if(mb_password){
-      password = jwt.generatePassword(mb_password);
+    if(data?.mb_password){
+      password = jwt.generatePassword(data?.mb_password);
       const payload = {
         mb_update_at: at,
         mb_login_at: at,
@@ -361,11 +362,13 @@ const memberController = {
       const editDone = await db.execute(query, values);
       return payload;
 
-    }else if(mb_email && token){
-      const cols = {mb_id, mb_email}
+    }else if(data?.mb_email && data?.token){
+      const cols = {mb_id:data?.mb_id, mb_email:data?.mb_email}
       const { query, values } = await sqlHelper.selectLimit(TABLE.MEMBER,null,cols);
       const [[member]] = await db.execute(query, values);
-      return {member, token};
+      return {member, token:data?.token};
+    }else{
+      return null
     }
   },
 
