@@ -344,7 +344,7 @@ const memberController = {
     // 아이디 패스워드로 해당 레코드 찾아 로그인시간 업데이트
     const data = req.body;
     // { mb_id, mb_password, mb_email,token }
-    const password='';
+    let password='';
     if(data?.mb_password){
       password = jwt.generatePassword(data?.mb_password);
       const payload = {
@@ -354,12 +354,12 @@ const memberController = {
       };
   
       const cols = {
-        mb_id: mb_id,
+        mb_id: data?.mb_id,
         mb_password: password,
       };
   
       const { query, values } = await sqlHelper.edit(TABLE.MEMBER, payload, cols);
-      const editDone = await db.execute(query, values);
+      await db.execute(query, values);
       return payload;
 
     }else if(data?.mb_email && data?.token){
