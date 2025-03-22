@@ -75,6 +75,7 @@ const passport = function (app) {
 
   app.use(async (req, res, next) => {
     const token = req.cookies.token || req.headers.token; // 게시판에서 비회원이 headers에 토큰보냄
+    
     if (!token) return next();
     const { mb_id } = jwt.verify(token);
     try {

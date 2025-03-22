@@ -339,26 +339,34 @@ const memberController = {
   },
   //멤버 로그인 : 회원가입테이블에 로그인컬럼적용
   loginMember: async (req) => {
-    // 아이디 패스워드로 해당 레코드 찾아 로그인시간 업데이트
-    const { mb_id, mb_password } = req.body;
-    const password = jwt.generatePassword(mb_password);
     const at = moment().format("YYYY-MM-DD HH:mm:ss");
     const ip = getIp(req);
+    // 아이디 패스워드로 해당 레코드 찾아 로그인시간 업데이트
+    const { mb_id, mb_password, mb_email,token } = req.body;
+    const password='';
+    if(mb_password){
+      password = jwt.generatePassword(mb_password);
+      const payload = {
+        mb_update_at: at,
+        mb_login_at: at,
+        mb_update_ip: ip,
+      };
+  
+      const cols = {
+        mb_id: mb_id,
+        mb_password: password,
+      };
+  
+      const { query, values } = await sqlHelper.edit(TABLE.MEMBER, payload, cols);
+      const editDone = await db.execute(query, values);
+      return payload;
 
-    const payload = {
-      mb_update_at: at,
-      mb_login_at: at,
-      mb_update_ip: ip,
-    };
-
-    const cols = {
-      mb_id: mb_id,
-      mb_password: password,
-    };
-
-    const { query, values } = await sqlHelper.edit(TABLE.MEMBER, payload, cols);
-    const editDone = await db.execute(query, values);
-    return payload;
+    }else if(mb_email && token){
+      const cols = {mb_id, mb_email}
+      const { query, values } = await sqlHelper.selectLimit(TABLE.MEMBER,null,cols);
+      const [[member]] = await db.execute(query, values);
+      return {member, token};
+    }
   },
 
   //탈퇴

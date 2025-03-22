@@ -9,12 +9,25 @@ const STATUS = require("../util/STATUS");
 const uplpad = require("../util/uploadMulter");
 
 //새로고침 멤버유지
-router.get("/aliveCheck", async (req, res) => {
+router.post("/aliveCheck", async (req, res) => {
   if (req?.user) {
     const [result] = req.user;
     delete result.mb_password;
     res.json(result);
   } else {
+  const {member,token} = await modelCall(memberController.loginMember, req); // 업데이트 이루어짐
+  if(member){
+    // 쿠키생성 클라 넣어줌
+    res.cookie("token", token, { 
+      httpOnly: true,   // JavaScript에서 쿠키 접근 불가능 (보안 강화)
+      // secure: true,     // HTTPS에서만 전송됨 (배포 환경에서는 true로 설정)
+      // sameSite: 'Lax',  // 크로스사이트 요청 문제 방지 (필요 시 'None' 사용)
+      maxAge: 7 * 24 * 60 * 60 * 1000  // 7일간 유지 (밀리초 단위)
+     }); //클라에서 서버로 못옴
+     console.log('>>>>>>>>>>>>>>>>>>>>> memeber : ', member, token);
+    const result = { member, token };
+    res.json(result);
+  }
     res.json("로그인 사용자 아님");
   }
 });
