@@ -11,7 +11,7 @@ require("./plugins/pm2Bus");
   const app = express();
   // const port = process.env.VUE_APP_SERVER_PORT || 3000;
   const port = require("./config")[process.env.NODE_ENV].PORT || 3000;
-  console.log('port>>>>',port)
+  // console.log('port>>>>',port)
   const webServer = http.createServer(app);
 
   //logger
@@ -71,7 +71,8 @@ app.set('trust proxy', 1);
 app.use(session({
 cookie:{
     secure: true,
-    maxAge:60000
+    maxAge:60000,
+    sameSite:'none'
        },
 store: redisStore,
 secret: 'genie-session-sercret',
