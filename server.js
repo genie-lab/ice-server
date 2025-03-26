@@ -72,12 +72,13 @@ app.use(session({
 cookie:{
     secure: true,
     maxAge:60000,
-    sameSite:'none'
+    sameSite:'none',
+    secure: false
        },
-store: redisStore,
-secret: 'genie-session-sercret',
-saveUninitialized: true,
-resave: false
+  store: redisStore,
+  secret: 'genie-session-sercret',
+  saveUninitialized: false,
+  resave: false
 }));
 
 app.use(function(req,res,next){
