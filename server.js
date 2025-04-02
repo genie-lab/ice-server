@@ -67,13 +67,14 @@ require("./plugins/pm2Bus");
   //-momery unleaked---------
 app.set('trust proxy', 1);
 
+// 환경이 프로덕션인지 확인
+const isProduction = process.env.NODE_ENV === 'production';
 app.use(session({
-cookie:{
-    secure: true,
-    maxAge:60000,
-    sameSite:'none',
-    secure: false
-       },
+  cookie:{
+    secure: isProduction,  // 프로덕션 환경에서만 secure를 true로 설정
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 세션 유지 기간: 7일
+    sameSite: 'none', // 크로스 도메인 요청에도 쿠키 전송 허용
+  },
   store: redisStore,
   secret: 'genie-session-sercret',
   saveUninitialized: false,

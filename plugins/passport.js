@@ -33,7 +33,8 @@ function loginRules(member) {
 }
 
 const passport = function (app) {
-  app.use(Passport.initialize());
+  app.use(Passport.initialize()); //요청 (req 객체) 에 passport 설정
+  app.use(Passport.session()); // req.session 객체에 passport 인증 완료 정보를 저장
 
   Passport.use(
     new LocalStrategy(
