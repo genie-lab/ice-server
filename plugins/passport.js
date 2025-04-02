@@ -40,19 +40,15 @@ const passport = function (app) {
       { usernameField: "mb_id", passwordField: "mb_password" },
 
       async (mb_id, mb_password, done) => {
-        console.log('mb_id, mb_password',mb_id, mb_password);
         try {
           mb_password = jwt.generatePassword(mb_password);
-          console.log('mb_password',mb_password);
           const [member] = await memberController.memberByWhere({
             mb_id,
             mb_password,
           });
-          console.log('member',member);
           
           //로그인정책추가
           const msg = loginRules(member);
-          console.log('msg',msg);
           
           if (msg) {
             return done(null, null, msg); // 에러,member, info
@@ -74,7 +70,6 @@ const passport = function (app) {
   );
 
   app.use(async (req, res, next) => {
-    console.log('토큰ㅣ 있을때 !!!',req);
     const token = req.cookies.token || req.headers.token; // 게시판에서 비회원이 headers에 토큰보냄
     if (!token) return next();
     const { mb_id } = jwt.verify(token);

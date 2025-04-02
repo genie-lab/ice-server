@@ -11,7 +11,6 @@ require("./plugins/pm2Bus");
   const app = express();
   // const port = process.env.VUE_APP_SERVER_PORT || 3000;
   const port = require("./config")[process.env.NODE_ENV].PORT || 3000;
-  // console.log('port>>>>',port)
   const webServer = http.createServer(app);
 
   //logger
@@ -24,7 +23,6 @@ require("./plugins/pm2Bus");
 
 
   const bcrypt = require("bcrypt");
-  console.log(bcrypt.hashSync("genie-lab", 12));
 
   //socket
   global.$IO = require("./plugins/socket")(webServer);

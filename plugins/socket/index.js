@@ -33,12 +33,9 @@ const server = function (webServer) {
   //https://admin.socket.io/admin
   //https://bcrypt-generator.com
   const bcrypt = require("bcrypt");
-  // console.log(bcrypt.hashSync("genie-lab", 12));
   const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
   const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH;
 
-  // console.log("🔹 ADMIN_USERNAME:", process.env.ADMIN_USERNAME);
-  // console.log("🔹 ADMIN_PASSWORD_HASH:", process.env.ADMIN_PASSWORD_HASH);
   instrument(io, {
     namespaceName: "/admin", // 확실히 "/admin"으로 설정
     auth: {
@@ -55,7 +52,6 @@ const server = function (webServer) {
     //session id
 
     const sessionID = socket.handshake.auth.sessionID;
-    // console.log("sessionID", sessionID);
     if (sessionID) {
       // find existing session
       const session = sessionStore.findSession(sessionID);
@@ -68,7 +64,6 @@ const server = function (webServer) {
     }
 
     const username = socket.handshake.auth.userName;
-    // console.log("username", username);
     if (!username) {
       return next(new Error("invalid username"));
     }
@@ -77,7 +72,6 @@ const server = function (webServer) {
     socket.sessionID = randomId();
     socket.userID = randomId();
     socket.username = username;
-    // console.log(socket.sessionID);
     const session = socket.sessionID;
     next();
   });
@@ -86,15 +80,12 @@ const server = function (webServer) {
     // handler 추가
     configHandler(io, socket);
     boardHandler(io, socket);
-    // console.log("conected=>??", socket.id);
-    // console.log("conected=>socket.sessionID??", socket.sessionID);
     socket.emit("session", {
       sessionID: socket.sessionID,
       userID: socket.userID,
     });
 
     socket.on("disconnection", () => {
-      // console.log("disconnect === => ", socket.sessionID);
       //socket연결 끊기
     });
 

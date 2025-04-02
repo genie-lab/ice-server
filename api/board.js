@@ -121,7 +121,6 @@ router.put("/:bo_table/:wr_id/:wr_grp/del", async (req, res) => {
   const modifyMsg = await isModify(bo_table, member, data, checkToken, token);
   if (modifyMsg) {return res.json({ err: modifyMsg });}
   const result = await modelCall(boardController.del, bo_table,wr_id,wr_grp,member,ip);
-  console.log('result',result);
   res.json(result);
 });
 
@@ -275,7 +274,6 @@ router.get("/:bo_table/:filename/download", async (req,res)=>{
   }
   // const { src } = req.query;
   const srcFile = `${UPLOAD_PATH}/${bo_table}/${filename}`;
-  console.log();
   if (!fs.existsSync(srcFile)) {
     return res.status(404).end("file not found");
   }

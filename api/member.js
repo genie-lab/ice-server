@@ -16,7 +16,6 @@ router.post("/aliveCheck", async (req, res) => {
     res.json(result);
   } else {
   // const data = await modelCall(memberController.loginMember, req); // 업데이트 이루어짐
-  // console.log('member data',data)
   // if(data?.member){
   //   // 쿠키생성 클라 넣어줌
   //   res.cookie("token", data?.token, { 
@@ -25,7 +24,6 @@ router.post("/aliveCheck", async (req, res) => {
   //     // sameSite: 'Lax',  // 크로스사이트 요청 문제 방지 (필요 시 'None' 사용)
   //     maxAge: 7 * 24 * 60 * 60 * 1000  // 7일간 유지 (밀리초 단위)
   //    }); //클라에서 서버로 못옴
-  //    console.log('>>>>>>>>>>>>>>>>>>>>> memeber : ', data.member, data.token);
   //    delete data.member.mb_password
   //    req.user = data.member
   //    const result = { member:data.member, token:data.token };
@@ -56,10 +54,8 @@ router.post("/duplCheck", async (req, res) => {
 });
 //login
 router.post("/loginLocal", async (req, res) => {
-  console.log('login local',req.body);
   // 인증
   passport.authenticate("local", function (err, member, info) {
-    console.log('passport member',member, info, err);
     // passport 안 done(내용들 , , ); 인증결과 받음
     if (info) {
       // 에러
@@ -68,7 +64,6 @@ router.post("/loginLocal", async (req, res) => {
       // 인증승인
       //passport 문법
       req.login(member, { session: false }, async (err) => {
-        console.log('member',member);
 
         // 싱글페이지라 session false처리 앞단에서 쿠키사용
         if (err) {
@@ -78,14 +73,12 @@ router.post("/loginLocal", async (req, res) => {
         } else {
           //토큰 가져오기
           const token = jwt.getToken(member); //member.mb_id 가져옴
-          console.log('token : ', token);
 
           //로그인 업데이트 시간 업데이트
           try {
             const data = await memberController.loginMember(req); // 업데이트 이루어짐
             member.mb_login_at = data.mb_login_at;
             member.mb_login_ip = data.mb_login_ip;
-            console.log('data : ', data);
 
             // 쿠키생성 클라 넣어줌
             res.cookie("token", token, { 
@@ -94,7 +87,6 @@ router.post("/loginLocal", async (req, res) => {
               // sameSite: 'Lax',  // 크로스사이트 요청 문제 방지 (필요 시 'None' 사용)
               maxAge: 7 * 24 * 60 * 60 * 1000  // 7일간 유지 (밀리초 단위)
              }); //클라에서 서버로 못옴
-             console.log('>>>>>>>>>>>>>>>>>>>>> memeber : ', member, token);
             const result = { member, token };
             res.json(result);
           } catch (error) {
