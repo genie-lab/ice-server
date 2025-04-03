@@ -73,7 +73,6 @@ console.log('isProduction',isProduction)
 app.use(session({
   cookie:{
     secure: isProduction,  // 프로덕션 환경에서만 secure를 true로 설정
-    maxAge: 1000 * 60 * 60 * 24 * 7, // 세션 유지 기간: 7일
     sameSite: isProduction ? 'none' :'lax',  // 크로스사이트 쿠키 전송 허용
   },
   store: redisStore,

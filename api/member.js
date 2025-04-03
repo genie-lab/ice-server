@@ -73,7 +73,6 @@ router.post("/loginLocal", async (req, res) => {
               httpOnly: true,   // JavaScript에서 쿠키 접근 불가능 (보안 강화)
               secure: isProduction,  // 프로덕션에서만 true로 설정
               sameSite: isProduction ? 'none' :'lax',  // 크로스사이트 쿠키 전송 허용
-              maxAge: 7 * 24 * 60 * 60 * 1000  // 7일간 유지 (밀리초 단위)
              }); //클라에서 서버로 못옴
             const result = { member, token };
             res.json(result);
