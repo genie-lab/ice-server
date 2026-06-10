@@ -54,7 +54,7 @@
   "devDependencies": {
     "jest": "^29.7.0"
   },
-  "overrides": {
-    "axios": "^1.16.0" 
+  "resolutions": {
+    "axios": "^1.7.9"
   }
 }
